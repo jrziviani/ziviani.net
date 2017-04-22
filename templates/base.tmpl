@@ -19,19 +19,28 @@
         <![endif]-->
     </head>
     <body>
-        <nav class="navbar navbar-default navbar-fixed-top">
+        <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
             <div class="container-fluid">
                 <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main_nav" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
                     <a class="navbar-brand">
                         <strong>memory</strong><em>dump</em>
                     </a>
                 </div>
-                <div class="collapse navbar-collapse">
+                <div class="collapse navbar-collapse" id="main_nav">
                     <ul class="nav navbar-nav">
                         <li><a href="/about">about</a></li>
                         <li><a href="https://github.com/jrziviani" target="_blank">github</a></li>
                         <li><a href="https://br.linkedin.com/in/ziviani" target="_blank">linkedin</a></li>
-                        <li><a href="#">Social Recommendations</a></li>
+                        <li><a href="#">recommendations</a></li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right visible-xs-block">
+                        <li><a href="/articles">articles</a></li>
                     </ul>
                 </div>
             </div>

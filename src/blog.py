@@ -51,6 +51,7 @@ class Blog(object):
             Rule('/', endpoint='index'),
             Rule('/feed', endpoint='feed'),
             Rule('/about', endpoint='about'),
+            Rule('/articles', endpoint='articles'),
             Rule('/<int:year>/<page>', endpoint='posts'),
         ])
 
@@ -86,6 +87,13 @@ class Blog(object):
             self._logger.error('template %s not found', page)
             raise NotFound()
 
+        return Response(response, mimetype='text/html')
+
+    def _on_articles(self, request):
+        '''
+        Handles request to articles page
+        '''
+        response = self._templates.get_template("article.tmpl")
         return Response(response, mimetype='text/html')
 
     def _on_about(self, request):
