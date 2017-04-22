@@ -67,15 +67,12 @@ class Blog(object):
         response = self._templates.get_template('memorydump-reboot.tmpl')
         return Response(response, mimetype='text/html')
 
-    def _on_feeds(self, request):
+    def _on_feed(self, request):
         '''
         Handles the feed (rss) request
         '''
-        response = self._templates.get_template("%s.tmpl" % page)
-        if response is none:
-            self._logger.error('Template %s not found' % page)
-            return self._not_found()
-
+        articles = self._templates.get_metatemplate()
+        response = self._templates.get_template("feed.tmpl", posts=articles)
         return Response(response, mimetype='application/rss+xml')
 
     def _on_posts(self, request, year, page):

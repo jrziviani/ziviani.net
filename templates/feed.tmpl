@@ -1,0 +1,30 @@
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/" version="2.0">
+    <channel>
+        <title>MemoryDump - ziviani.net</title>
+        <atom:link href="http://www.ziviani.net/feed" rel="self" type="application/rss+xml"/>
+        <link>https://ziviani.net</link>
+        <description>MemoryDump personal blog</description>
+        <lastBuildDate>Sun, 29 Jan 2012 04:09:16 +0000</lastBuildDate>
+        <language>en</language>
+        <sy:updatePeriod>hourly</sy:updatePeriod>
+        <sy:updateFrequency>1</sy:updateFrequency>
+        <generator>https://ziviani.net</generator>
+        {% for data in posts %}
+            <item>
+            <title>{{ data['title'] }}</title>
+            <link>https://ziviani.net/{{ data['year'] }}/{{ data['path'] }}</link>
+            <pubDate>{{ data['doc'] }}</pubDate>
+            <dc:creator>Jose Ricardo Ziviani</dc:creator>
+            <category>Tech Blog</category>
+            <guid isPermaLink="true">http://www.ziviani.net/{{ data['year'] }}/{{ data['path'] }}</guid>
+            <description>
+                <![CDATA[ {{ data['resume'] }} ]]>
+            </description>
+            <content:encoded>
+                <![CDATA[ {{ data['resume'] }} ]]>
+            </content:encoded>
+            <slash:comments>0</slash:comments>
+            </item>
+        {% endfor %}
+    </channel>
+</rss>

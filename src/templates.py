@@ -22,6 +22,7 @@
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from jinja2 import TemplateNotFound
+from lxml import html
 
 import os
 
@@ -62,4 +63,30 @@ class templates(object):
             return None
 
         return template.render(context)
+
+    def get_metatemplate(self):
+        '''
+        '''
+        metadata = []
+        article = None
+        try:
+            with open(os.path.join(TEMPLATE_DIR, 'articles.tmpl')) as article_file:
+                article = article_file.read()
+
+        # if it catches any exception something really bad happened
+        except:
+            return None
+
+        parser = html.fromstring(article)
+        posts = parser.xpath('//a[@class="posts"]')
+
+        for post in posts:
+            path = post.get('href').split('/')
+            metadata.append({'title': post.text,
+                             'resume': '',
+                             'doc': post.get('data-doc'),
+                             'year': path[1],
+                             'path': path[2]})
+        return metadata
+
 # class Templates
