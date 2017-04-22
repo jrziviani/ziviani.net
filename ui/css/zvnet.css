@@ -101,7 +101,7 @@ div.separator {
 
 pre {
     font-family: 'Ubuntu Mono', monospace !important;
-    font-size: 1.2em;
+    font-size: 1.0em !important;
     border: 0;
 }
 
