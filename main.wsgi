@@ -22,15 +22,12 @@
 import os
 import sys
 
-sys.path.insert(0, '/var/www/html/')
+PATH=os.path.dirname(__file__) 
+sys.path.insert(0, os.path.join(PATH,'src')) 
+sys.path.insert(0, PATH) 
 
 from src.blog import Blog
 from werkzeug.wsgi import SharedDataMiddleware
-
-
-# --
-# CONSTANTS
-# --
 
 
 # --
