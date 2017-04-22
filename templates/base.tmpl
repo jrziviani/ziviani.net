@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>ziviani.net - MemoryDump</title>
+
+        <link href="/ui/css/bootstrap.min.css" rel="stylesheet"/>
+        <link href="/ui/css/zvnet.css" rel="stylesheet"/>
+        <link href="/ui/css/prism.css" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css?family=Dosis|Ubuntu+Mono" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="navbar-brand">
+                        <strong>memory</strong><em>dump</em>
+                    </a>
+                </div>
+                <div class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li><a href="/about">about</a></li>
+                        <li><a href="https://github.com/jrziviani" target="_blank">github</a></li>
+                        <li><a href="https://br.linkedin.com/in/ziviani" target="_blank">linkedin</a></li>
+                        <li><a href="#">Social Recommendations</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid override">
+            <div class="row">
+                <div class="wrapper">
+                    <div class="col-md-3" id="index">
+                        {% include "articles.tmpl" %}
+                    </div>
+                    <div class="col-md-9" id="content">
+                        {% block postbody %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <!-- Include all compiled plugins (below), or include individual files as needed -->
+        <script src="/ui/js/bootstrap.min.js"></script>
+        <script src="/ui/js/zvnet.js"></script>
+        <script src="/ui/js/prism.js"></script>
+    </body>
+</html>

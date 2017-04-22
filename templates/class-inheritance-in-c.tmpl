@@ -1,0 +1,316 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Class Inheritance in C</h2>
+<p><strong>2014 - Dec - 14</strong></p>
+
+<p>C language is not objected oriented, bla bla bla. Right, ok, let's see how to implement <strong>class inheritance</strong> in C.</p>
+
+<h3>The Python Way</h3>
+
+<p>Python is classy. It's easily possible to write a whole class hierarchy in Python but how the interpreter implements that?</p>
+
+<p>PyObject is the <em>base class</em> in Python, it's the mother of everybody else. In C, it's a struct with some fields #defined <em>HEAD</em>, which are inhered by any of its subclass.</p>
+
+<pre>
+<code class="language-c">// http://svn.python.org/view/python/trunk/Include/object.h
+...
+#define _PyObject_HEAD_EXTRA
+#define _PyObject_EXTRA_INIT
+...
+
+#define PyObject_HEAD                   \
+    _PyObject_HEAD_EXTRA                \
+    Py_ssize_t ob_refcnt;               \
+    struct _typeobject *ob_type;
+ 
+#define PyObject_VAR_HEAD \
+    PyObject_HEAD \
+    Py_ssize_t ob_size; /* Number of items in variable part */
+ 
+typedef struct _object {
+    PyObject_HEAD
+} PyObject;</code>
+</pre>
+
+<p>See below the children of PyObject: PyStringObject, PyFloatObject, and PyListObject. <strong>But how do I know that they're children of PyObject?</strong> hmm, it'll be clearer later but take a look at the structs, all have <strong>PyObject_HEAD</strong> or <strong>PyObject_VAR_HEAD</strong> (which also starts with PyObject_HEAD, see above) as the <strong>FIRST</strong> field.</p>
+
+<pre>
+<code class="language-c">// http://svn.python.org/view/python/trunk/Include/stringobject.h
+typedef struct {
+    PyObject_VAR_HEAD
+    long ob_shash;
+    int ob_sstate;
+    char ob_sval[1];
+} PyStringObject;
+ 
+// http://svn.python.org/view/python/trunk/Include/floatobject.h
+typedef struct {
+    PyObject_HEAD
+    double ob_fval;
+} PyFloatObject;
+ 
+// http://svn.python.org/view/python/trunk/Include/listobject.h
+typedef struct {
+    PyObject_VAR_HEAD
+    PyObject **ob_item;
+    Py_ssize_t allocated;
+} PyListObject;</code>
+</pre>
+
+<p>A naive class diagram could be made from those structs:</p>
+
+<p><img src="/ui/images/pyobject_diagram.png" alt="PyObject object diagram"/></p>
+
+<h3>Casting</h3>
+
+<p>Let's the magic begins. In the code below, forget about everything and focus on "<strong>return ((PyListObject*)op)-&gt;ob_item[i];</strong>".</p>
+
+<p>Do you know <a href="http://en.cppreference.com/w/c/language/cast" target="_blank">type casting</a>? In a nutshell it's how programmers tell the compiler they are geniuses and can be trust when they ask to handle a data type as another data type. I heard some people calling it "russian roulette".</p>
+
+<pre>
+<code class="language-c">// http://svn.python.org/view/python/trunk/Objects/listobject.c?view=markup
+PyObject *PyList_GetItem(PyObject *op, Py_ssize_t i)
+{
+    if (!PyList_Check(op)) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
+    if (i &lt; 0 || i &gt;= Py_SIZE(op)) {
+        if (indexerr == NULL) {
+            indexerr = PyString_FromString("list index out of range");
+            if (indexerr == NULL)
+                return NULL;
+        }
+        PyErr_SetObject(PyExc_IndexError, indexerr);
+        return NULL;
+    }
+    return ((PyListObject *)op)-&gt;ob_item[i];
+}</code>
+</pre>
+
+<p>So, <strong>((PyListObject*)op)</strong> casts <strong>op</strong> object pointer (PyObject*) to a PyListObject* (note the PyList_Check(op) as a sanity check). Then it accesses <strong>ob_item</strong> field (PyObject doesn't have ob_item but PyListObject does, as you told your compiler that you're the genious it'll let you do that).</p>
+
+<p>Finally, whatever is stored at position <strong>i</strong> will be returned to the caller, and it will be returned as PyObject because the function requires and C performs an <a target="_blank" href="https://en.wikipedia.org/wiki/Type_conversion#Implicit_type_conversion">implicit conversion</a> to attend such requirement.</p>
+
+<p><strong>Aaaarrrghhh, but those structs (PyObject vs PyList) are completely different! why didn't that break the program?</strong></p>
+
+<p>Because it's safe and well defined in the <a href="http://flash-gordon.me.uk/ansi.c.txt" target="_blank">C99 standard.</a>. REPLAY: C99!</p>
+
+<p><blockquote cite="http://flash-gordon.me.uk/ansi.c.txt">Within a structure object, the non-bit-field members and the units in which bit-fields reside have addresses that increase in the order in which they are declared. A pointer to a structure object, suitably cast, points to its initial member (or if that member is a bit-field, then to the unit in which it resides), and vice versa. There may therefore be unnamed holes within a structure object, but not at its beginning, as necessary to achieve the appropriate alignment.</blockquote></p>
+
+<p>In a nutshell, it means that a <strong>pointer to any struct always point to its first element</strong> (declaration order), so you can cast it to any other struct if (and only if) its first field have the same type. <strong>Cool!</strong></p>
+
+<h3>Show me the Code</h3>
+
+<p>Based on a sample C code, let's go through the not-optimized code generated by GCC to see how it's implemented. It's just a proof of concept.</p>
+
+<pre>
+<code class="language-c">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+
+#define HEAD int type;
+
+enum { INTEGER, FLOAT };
+
+typedef struct
+{
+    HEAD
+} Number;
+
+typedef struct
+{
+    HEAD
+    int val;
+} Integer;
+
+typedef struct
+{
+    HEAD
+    float val;
+} Float;
+
+int main()
+{
+    Integer i;
+    i.type = INTEGER;
+    i.val  = 42;
+
+    Float f;
+    f.type = FLOAT;
+    f.val  = 36.85;
+
+    Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+
+    numbers[0] = (Number*)&i;
+    numbers[1] = (Number*)&f;
+
+    // for debugging purpose ↓
+    int y = ((Integer*)numbers[0])-&gt;val;
+    
+    int x = numbers[0]-&gttype;
+    x = numbers[1]-&gttype;
+    // for debugging purpose ↑
+
+    for (unsigned int count = 0; count &lt; 2; ++count)
+    {
+        switch (numbers[count]-&gt;type)
+        {
+            case INTEGER:
+                printf("%d - Integer: %d\n", 
+                        count, 
+                        ((Integer*)numbers[count])-&gt;val);
+                break;
+
+            case FLOAT:
+                printf("%d - Float: %.2f\n", 
+                        count, 
+                        ((Float*)numbers[count])-&gt;val);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    free(numbers);
+
+    return 0;
+}
+
+Compiling:
+gcc -g -std=c99 code.c -o codebin
+
+Running:
+./codebin
+0 - Integer: 42
+1 - Float: 36.85</code>
+</pre>
+
+<p>Good, let's see the internals.</p>
+
+<pre>
+<code class="language-c">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+
+0x4005e3 &lt;main+38&gt;      mov    $0x10,%edi
+0x4005e8 &lt;main+43&gt;      callq  0x4004c0 &lt;malloc@plt&gt;
+0x4005ed &lt;main+48&gt;      mov    %rax,-0x8(%rbp)
+
+(gdb) info registers rax
+rax            0x602010 6299664
+
+(gdb) x/wx $rbp-0x8
+0x7fffffffe3c8: 0x00602010
+
+(gdb) x/wx 0x00602010
+0x602010:       0x00000000</code>
+</pre>
+
+<p>Malloc reads the size from EDI register and stores the memory address in RAX. That address is copied to RBP-0x8, the place of our variable <strong>numbers</strong> in the stack.</p>
+<p><img src="/ui/images/c_poly_malloc.png" alt="malloc instructions" />
+
+<pre>
+<code class="language-c">numbers[0] = (Number*)&i;
+
+0x4005f1 &lt;main+52&gt;      mov    -0x8(%rbp),%rax
+0x4005f5 &lt;main+56&gt;      lea    -0x20(%rbp),%rdx
+0x4005f9 &lt;main+60&gt;      mov    %rdx,(%rax)
+(gdb) x/wx $rbp-0x20
+0x7fffffffe3b0: 0x00000000
+
+(gdb) x/2wx 0x00602010
+0x602010:       0xffffe3b0      0x00007fff</code>
+</pre>
+
+<p>RBP-0x8 (as known as "numbers") is copied to RAX, the address of RBP-0x20 (the address of struct "i") is copied in RDX, and finally the content of RDX (which is the address of "i") is stored in the heap. The instruction <strong>mov %rdx,(%rax)</strong> copies the RDX content to the place where RAX content is pointing to, which is the memory allocated.</p>
+
+<p>Note that RBP-0x20 is the place of of Integer first element.</p>
+
+<p><img src="/ui/images/c_poly_cast1.png" alt="assembly instructions" /></p>
+
+<p class="well"><strong>Important</strong>: the address of a local variable, in the stack, was stored in the heap, fortunately we are running everything in main() but it could be harmful it was a function, for instance. Read about <a href="https://en.wikipedia.org/wiki/Call_stack#Structure" target="_blank">stack frames</a>.</p>
+
+<pre>
+<code class="language-c">int y = ((Integer*)numbers[0])-&gt;val;
+
+0x40060b &lt;main+78&gt;      mov    -0x8(%rbp),%rax
+(gdb) info registers rax
+rax            0x602010 6299664
+
+0x40060f &lt;main+82&gt;      mov    (%rax),%rax
+(gdb) info registers rax
+rax            0x7fffffffe3b0   140737488348080
+
+(gdb) x/wx 0x7fffffffe3b0+4
+0x7fffffffe3b4: 0x0000002a ==&gt; (42 int)
+
+0x400612 &lt;main+85&gt;      mov    0x4(%rax),%eax
+(gdb) info registers eax
+eax            0x2a     42
+
+0x400615 &lt;main+88&gt;      mov    %eax,-0x28(%rbp)
+(gdb) x/wx $rbp-0x28
+0x7fffffffe3a8: 0x0000002a</code>
+</pre>
+
+<p>Nothing new here, but see that the cast to <strong>Integer</strong> allows a <strong>Number</strong> variable has access to a element that only <strong>Integer</strong> has.</p>
+
+<p><img src="/ui/images/c_poly_cast2.png" alt="assembly instructions" /></p>
+
+<pre>
+<code class="language-c">int x = numbers[0]-&gt;type;
+
+0x400618 &lt;main+91&gt;      mov    -0x8(%rbp),%rax
+0x40061c &lt;main+95&gt;      mov    (%rax),%rax
+0x40061f &lt;main+98&gt;      mov    (%rax),%eax
+(gdb) info registers rax
+rax            0x0      0
+
+0x400621 &lt;main+100&gt;     mov    %eax,-0x24(%rbp)
+(gdb) x/wx $rbp-0x24
+0x7fffffffe3ac: 0x00000000</code>
+</pre>
+
+<p><img src="/ui/images/c_poly_cast3.png" alt="assembly instructions" /></p>
+
+<pre>
+<code class="language-c">x = numbers[1]-&gt;type;
+
+0x400624 &lt;main+103&gt;     mov    -0x8(%rbp),%rax
+(gdb) info registers rax
+rax            0x602010 6299664
+
+0x400628 &lt;main+107&gt;     add    $0x8,%rax
+(gdb) info registers rax
+rax            0x602018 6299672
+
+0x40062c &lt;main+111&gt;     mov    (%rax),%rax
+(gdb) x/2wx 0x602018
+0x602018:       0xffffe3c0      0x00007fff
+
+(gdb) x/wx 0x7fffffffe3c0
+0x7fffffffe3c0: 0x00000001
+
+0x40062f &lt;main+114&gt;     mov    (%rax),%eax
+(gdb) info registers rax
+rax            0x7fffffffe3c0   140737488348096
+
+(gdb) info registers eax
+eax            0x1      1
+
+0x400631 &lt;main+116&gt;     mov    %eax,-0x24(%rbp)
+(gdb) x/wx $rbp-0x24
+0x7fffffffe3ac: 0x00000001</code>
+</pre>
+
+<p><img src="/ui/images/c_poly_cast4.png" alt="assembly instructions" /></p>
+
+<h3><a name="references"></a>References</h3>
+
+<ul>
+    <li><a target="_blank" href="https://en.wikipedia.org/wiki/Call_stack#Structure">https://en.wikipedia.org/wiki/Call_stack#Structure</a></li>
+    <li><a target="_blank" href="http://flash-gordon.me.uk/ansi.c.txt">http://flash-gordon.me.uk/ansi.c.txt</a></li>
+    <li><a target="_blank" href="http://svn.python.org/view/">http://svn.python.org/view/</a></li>
+</ul>
+
+{% endblock %}
