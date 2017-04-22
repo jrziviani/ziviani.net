@@ -63,7 +63,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        response = self._templates.get_template('base.tmpl')
+        response = self._templates.get_template('memorydump-reboot.tmpl')
         return Response(response, mimetype='text/html')
 
     def _on_feeds(self, request):
