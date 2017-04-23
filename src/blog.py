@@ -65,8 +65,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        response = self._templates.get_template('memorydump-reboot.tmpl')
-        return Response(response, mimetype='text/html')
+        return self._on_posts(request, '2017', 'memorydump-reboot')
 
     def _on_feed(self, request):
         '''
