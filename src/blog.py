@@ -28,6 +28,7 @@ from werkzeug.exceptions import HTTPException
 from templates import templates
 
 import logging
+import hashlib
 
 
 # --
@@ -81,7 +82,11 @@ class Blog(object):
         '''
         Handles requests to posts
         '''
-        response = self._templates.get_template("%s.tmpl" % page)
+        page_data = {}
+        page_data['url'] = 'https://ziviani.net/%s/%s' % (year, page)
+        page_data['uid'] = hashlib.md5(page_data['url']).hexdigest()
+
+        response = self._templates.get_template("%s.tmpl" % page, data=page_data)
         if response is None:
             self._logger.error('template %s not found', page)
             raise NotFound()
