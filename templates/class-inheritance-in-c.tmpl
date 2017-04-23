@@ -89,11 +89,11 @@ PyObject *PyList_GetItem(PyObject *op, Py_ssize_t i)
 }</code>
 </pre>
 
-<p>So, <strong>((PyListObject*)op)</strong> casts <strong>op</strong> object pointer (PyObject*) to a PyListObject* (note the PyList_Check(op) as a sanity check). Then it accesses <strong>ob_item</strong> field (PyObject doesn't have ob_item but PyListObject does, as you told your compiler that you're the genious it'll let you do that).</p>
+<p>So, <strong>((PyListObject*)op)</strong> casts <strong>op</strong> object pointer (PyObject*) to a PyListObject* (note the PyList_Check(op) as a sanity check). Then it accesses <strong>ob_item</strong> field (PyObject doesn't have ob_item but PyListObject does, as you told your compiler that you're the genius it'll let you do that).</p>
 
 <p>Finally, whatever is stored at position <strong>i</strong> will be returned to the caller, and it will be returned as PyObject because the function requires and C performs an <a target="_blank" href="https://en.wikipedia.org/wiki/Type_conversion#Implicit_type_conversion">implicit conversion</a> to attend such requirement.</p>
 
-<p><strong>Aaaarrrghhh, but those structs (PyObject vs PyList) are completely different! why didn't that break the program?</strong></p>
+<p><strong>Aaaarrrghhh, but those structs (PyObject vs PyList) are completely different! Why didn't that break the program?</strong></p>
 
 <p>Because it's safe and well defined in the <a href="http://flash-gordon.me.uk/ansi.c.txt" target="_blank">C99 standard.</a>. REPLAY: C99!</p>
 
