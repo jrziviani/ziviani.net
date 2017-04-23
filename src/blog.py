@@ -71,8 +71,10 @@ class Blog(object):
         '''
         Handles the feed (rss) request
         '''
-        articles = self._templates.get_metatemplate()
-        response = self._templates.get_template("feed.tmpl", posts=articles)
+        response = self._templates.get_feed()
+        if response is None:
+            self._logger.error('feed not found, missed generate_metadata?')
+            raise NotFound()
         return Response(response, mimetype='application/rss+xml')
 
     def _on_posts(self, request, year, page):
