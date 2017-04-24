@@ -9,14 +9,14 @@
     <li>understand how a webserver works;</li>
     <li>understand Apache httpd;</li>
     <li>speed up your current system by optimizing a specific bottleneck;</li>
-    <li>instrumentation</li>
+    <li>instrumentation;</li>
     <li>fun?</li>
 </ul>
 </p>
 
 <h3>Warming up</h3>
 
-<p>Let's go right through. First step is to clone httpd code and build it.</p>
+<p>Let's go right through it. First step is to clone httpd code and build it.</p>
 
 <pre>
 <code class="line-numbers language-bash">% git clone https://github.com/apache/httpd.git
@@ -32,7 +32,7 @@
 % ls
 bin  build  cgi-bin  conf  error  htdocs  icons  include  lib  logs  man  manual  modules</code></pre>
 
-<p>Confirm that our server is working (I set a high port to run my server as user):</p>
+<p>Confirm that the server is working (I set a high port to run it as a normal user):</p>
 
 <pre>
 <code class="line-numbers language-bash">% # still in /home/ziviani/www
@@ -51,7 +51,7 @@ ServerName localhost:9898
 
 <h3>My Module</h3>
 
-<p>Now that we have the httpd source code that compiles and works, let's create our first module</p>
+<p>Now we have the httpd source code that compiles and works, let's create our first module.</p>
 
 <pre><code class="line-numbers language-bash">% bin/apxs -g -n my_fast_server
 Creating [DIR]  my_fast_server
@@ -62,7 +62,7 @@ Creating [FILE] my_fast_server/.deps
 
 % vim my_fast_server/mod_my_fast_server.c</code></pre>
 
-<p>Easy thing, huh? apsx just created a template (thanks to -g option) for us and now we have to do now is fill it up. Read the instructions in the comments, it explains evertyhing you have to do to build it.</p>
+<p>Easy thing, huh? apxs just created a template (thanks to -g option) for us, we only need to fill it up. Read the instructions in the comments, it explains evertyhing to build and configure it.</p>
 
 <pre><code class="line-numbers language-c">/* 
 **  mod_my_fast_server.c -- Apache sample my_fast_server module
@@ -137,7 +137,7 @@ module AP_MODULE_DECLARE_DATA my_fast_server_module = {
     my_fast_server_register_hooks  /* register hooks              */
 };</code></pre>
 
-<p>Just to have a bit of fun, I made some changes in that mod_my_fast_server.c. There is nothing special it only prints whatever you pass in your browser query string, here you go:</p>
+<p>Just to have a bit of fun I made some changes in mod_my_fast_server.c. There is nothing special, it only prints whatever you pass in your browser query string, here you go:</p>
 
 <pre><code class="line-numbers language-c">#include "httpd.h"
 #include "http_config.h"
@@ -237,7 +237,7 @@ module AP_MODULE_DECLARE_DATA my_fast_server_module = {
     my_fast_server_register_hooks  /* register hooks              */
 };</code></pre>
 
-<p>Now, compile it to build a DSO and install that DSO in the modules directory:</p>
+<p>Now, compile it to build a DSO and install that DSO in the modules directory (oh, apxs does that automatically too):</p>
 
 <pre><code class="line-numbers language-bash">% bin/apxs -c -i my_fast_server/mod_my_fast_server.c
 
@@ -263,7 +263,7 @@ more information, such as the ld(1) and ld.so(8) manual pages.
 ----------------------------------------------------------------------
 chmod 755 /home/ziviani/www/modules/mod_my_fast_server.so</code></pre>
 
-<p>And that's all! You only need to load that in your httpd.conf, start the server and use it.</p>
+<p>And that's all! You only need to configure httpd.conf, start the server and use it.</p>
 
 <pre><code class="line-numbers language-bash">% vim conf/httpd.conf
 ...
@@ -281,7 +281,7 @@ LoadModule my_fast_server_module modules/mod_my_fast_server.so
 
 <h3>Extra: static (no apxs) build</h3>
 
-<p>Suppose you don't want to use apxs and want to build your module statically, together with httpd itself. (I read somewhere that it's about 20% faster on initialization and 5% faster in runtime).</p>
+<p>Suppose you don't want to use apxs and want to build your module together with httpd itself. (I read somewhere that it's about 20% faster on initialization and 5% faster in runtime).</p>
 
 <p>I'll reuse the same source file and add my module in the Apache httpd build system. The steps are following:
 <ul>
@@ -322,7 +322,7 @@ include $(top_srcdir)/build/special.mk
 % make install
 </code></pre>
 
-<p>If your build finished without any errors, you can test your new httpd. Go to your www folder, edit conf/httpd.conf and start the server.</p>
+<p>If your build finished without any errors then you can test your new httpd. Go to your www folder, edit conf/httpd.conf and start the server.</p>
 
 <pre><code class="line-numbers language-bash">% vim conf/httpd.conf
 ...
