@@ -43,7 +43,7 @@ def deploy():
             '/robots.txt': os.path.join(
                 os.path.dirname(__file__), 'robots.txt'),
             '/favicon.ico': os.path.join(
-                os.path.dirname(__file__), 'favicon.ico'),
+                os.path.dirname(__file__), 'ui/images/favicon.png'),
         },
         cache=False,
         cache_timeout=36288000
