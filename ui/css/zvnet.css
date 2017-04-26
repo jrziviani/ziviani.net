@@ -99,9 +99,13 @@ div.separator {
     background-color: #eee8d5;
 }
 
-pre {
+pre code {
     font-family: 'Ubuntu Mono', monospace !important;
-    font-size: 1.0em !important;
+    font-size: 1.3em !important;
+    border: 0;
+}
+
+pre {
     border: 0;
 }
 
@@ -117,6 +121,7 @@ h2.error {
 }
 
 h2 {
+    font-size: 3em !important;
     margin-top: 0;
 }
 
@@ -125,8 +130,6 @@ div#index {
 }
 
 div#content {
-    font-family: 'Helvetica', 'Arial', sans-serif;
-    font-size: 1.0em;
     color: #002b36;
     padding-top: 20px;
 }
@@ -141,9 +144,10 @@ table#logic {
     font-size: 1.2em;
 }
 
-.container-fluid.override, .override .col-md-3, .override .col-md-9 {
+.container-fluid.override, .override .col-md-2, .override .col-md-9 {
     height: 100% !important;
 }
+
 
 .override *:before, .override *:after {
     display: none;
@@ -172,7 +176,7 @@ table#logic {
     height: 100%;
 }
 
-.override .col-md-3 {
+.override .col-md-2 {
     float: left;
     position: static;
     overflow: auto;
@@ -183,6 +187,8 @@ table#logic {
 .override .col-md-9 {
     position: static;
     overflow: auto;
+    font-family: 'Dosis', sans-serif;
+    font-size: 1.6em !important;
 }
 
 .brand > strong {

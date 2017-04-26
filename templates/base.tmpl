@@ -50,7 +50,7 @@
                         <li><a href="https://br.linkedin.com/in/ziviani" target="_blank">linkedin</a></li>
                         <li><a href="#">recommendations</a></li>
                     </ul>
-                    <ul class="nav navbar-nav navbar-right visible-xs-block">
+                    <ul class="nav navbar-nav navbar-right visible-xs-block visible-sm-block visible-md-block">
                         <li><a href="/articles">articles</a></li>
                     </ul>
                 </div>
@@ -60,10 +60,10 @@
         <div class="container-fluid override">
             <div class="row">
                 <div class="wrapper">
-                    <div class="col-md-3 hidden-xs" id="index">
+                    <div class="col-md-2 visible-lg-block" id="index">
                         {% include "articles.tmpl" %}
                     </div>
-                    <div class="col-md-9" id="content">
+                    <div class="col-md-9 id="content">
                         {% block postbody %}{% endblock %}
                     </div>
                 </div>
