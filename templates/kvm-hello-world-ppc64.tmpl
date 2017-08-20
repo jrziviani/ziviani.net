@@ -1,15 +1,15 @@
 {% extends "base.tmpl" %}
 {% block postbody %}
 <h2>Using the KVM API - PowerPC64 version</h2>
-<p>Based on a very nice article from <a href="https://lwn.net" target="_blank">LWN.net</a> named <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a>, is <strong>basically</strong> the same but for PowerPC 64bit.</p>
+<p>Based on a very nice article from <a href="https://lwn.net" target="_blank">LWN.net</a> named <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a>, this is <strong>basically</strong> the same but for PowerPC 64bit.</p>
 
 <h3>Guest code</h3>
-<p>The code is intended to run <em>bare-metal</em>, neither operating system nor SLOF to support us. So let's do it simple. Another point, the referred article writes the opcode embedded in his C program but this is going to run a separate binary in assembly.</p>
+<p>The code below is intended to run <em>bare-metal</em>, neither the operating system nor SLOF to support us, so let's do it simple. Also, the referred article embed opcode in his C program but I'm going to run a separate binary in assembly code.</p>
 
 <pre><code class="language-bash">$ cat code.s</code>
 <code class="line-numbers language-assembly">li 16,8 # stores number 8 in register R16
 li 17,4 # stores number 4 in register R17
-mullw 17,16,17 # stores the result of R16 * R17 in R18</code></pre>
+mullw 18,16,17 # stores the result of R16 * R17 in R18</code></pre>
 
 <p>Now, the .ld directives and the binary code.</p>
 
@@ -28,19 +28,20 @@ SECTIONS
 Disassembly of section .text:
 
 0000000000000100 <.text>:
- 100:	39 e0 00 08 	li      r15,8
- 104:	3a 00 00 04 	li      r16,4
- 108:	7e 2f 81 d6 	mullw   r17,r15,r16
+ 100:	3a 00 00 08 	li      r16,8
+ 104:	3a 20 00 04 	li      r17,4
+ 108:	7e 50 89 d6 	mullw   r18,r16,r17
 </code></pre>
 
-<p>After a System Reset interrupt PowerPC resumes execution at address 0x100, this is the reason why I linked the program at such address.</p>
+<p>After a System Reset interrupt, PowerPC resumes execution at address 0x100, this is the reason why I linked the program at such address.</p>
 
 <h3>Using KVM API</h3>
 
 <p>Details about KVM API is well covered by <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a> so I'll focus in PowerPC64 only. The first thing is the initial register values, everything starts zero'ed except for:</p>
 
 <pre><code class="language-bash">$ cat vm.c</code>
-<code class="line-numbers language-c">int setup_registers(struct virtual_machine *vm)
+<code class="line-numbers language-c">[snip]
+int setup_registers(struct virtual_machine *vm)
 {
     if (ioctl(vm-&gt;vcpufd, KVM_GET_SREGS, &amp;vm-&gt;sregs) == -1) {
         return 10;
@@ -62,15 +63,16 @@ Disassembly of section .text:
     }
 
     return 0;
-}</code></pre>
+}
+[snip]</code></pre>
 
-<p>The full source code can be found at <a href="https://github.com/jrziviani/kvm-lab" target="_blank">my github repo</a>.</p>
+<p>The full source code can be found at <a href="https://github.com/jrziviani/kvm-lab/blob/master/vm.c" target="_blank">my github repo</a>.</p>
 
 <p>
 <ul>
-    <li><strong>PVR - Power Version Register</strong>: the value 0x4d0200 include the version/revision for the Power8 system used.</li>
-    <li><strong>SDR1 - Storage Description Register 1</strong>: defines the high-order bit for physical base address plus the page table size. The value here is the same that QEMU uses but it won't make difference now since we're in real mode. *NOTE: this register doesn't exist anymore, page table locations are now stored in process table entries.</li>
-    <li><strong>MSR - Machine State Register</strong>: the value has the first bit set to 1, in other words indicates that the system is running in 64-bit mode.</li>
+    <li><strong>PVR - Power Version Register</strong>: the value 0x4d0200 includes the version/revision for the Power8 system used.</li>
+    <li><strong>SDR1 - Storage Description Register 1</strong>: defines the high-order bit for physical base address plus the page table size. The value here is the same that QEMU uses but it won't make difference now since we're in real mode. <em><strong>NOTE</strong>: this register doesn't exist anymore, page table locations are now stored in process table entries.</em></li>
+    <li><strong>MSR - Machine State Register</strong>: the value has the first bit set to 1. In other words, it indicates that the system is running in 64-bit mode.</li>
     <li><strong>PC - Program Counter</strong>: Actually it's not a PowerPC register. In Power, the next instruction address is basically a call to instruction bcl (branch condition and link) that will put the effective address following the branch address into the LR (Link Register). Here, it's set to address 0x100 because Power will resume the execution at it (recall that we linked our assembly code to the same address).</li>
 </ul>
 </p>
@@ -119,7 +121,7 @@ SECTIONS
 
 <p>Good, the binary code is in little-endian mode, let's change the vm.c:</p>
 
-<pre><code class="language-bash">$ cat vm.c</code>
+<pre data-line="5"><code class="language-bash">$ cat vm.c</code>
 <code class="line-numbers language-c">int setup_registers(struct virtual_machine *vm)
 [snip]
     struct kvm_regs regs = {
@@ -128,7 +130,7 @@ SECTIONS
     };
 [snip]</code></pre>
 
-<p>That 1 bit in MSR now tells Power to run in little-endian mode.</p>
+<p>That 1 bit in MSR now tells Power to run in little-endian mode. Recompile it again and it's done.</p>
 
 <h3>References</h3>
 
