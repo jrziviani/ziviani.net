@@ -1,0 +1,143 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Using the KVM API - PowerPC64 version</h2>
+<p>Based on a very nice article from <a href="https://lwn.net" target="_blank">LWN.net</a> named <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a>, is <strong>basically</strong> the same but for PowerPC 64bit.</p>
+
+<h3>Guest code</h3>
+<p>The code is intended to run <em>bare-metal</em>, neither operating system nor SLOF to support us. So let's do it simple. Another point, the referred article writes the opcode embedded in his C program but this is going to run a separate binary in assembly.</p>
+
+<pre><code class="language-bash">$ cat code.s</code>
+<code class="line-numbers language-assembly">li 16,8 # stores number 8 in register R16
+li 17,4 # stores number 4 in register R17
+mullw 17,16,17 # stores the result of R16 * R17 in R18</code></pre>
+
+<p>Now, the .ld directives and the binary code.</p>
+
+<pre><code class="language-bash">$ cat code.ld</code>
+<code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpc)
+SECTIONS
+{
+    . = 0x100;
+    .text : { *(.text) }
+}</code>
+<code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian</code>
+<code class="language-bash">$ ld -T code.ld code.o -o code.bin</code>
+<code class="language-bash">$ objdump -d code.bin</code>
+<code class="line-numbers language-assembly">code.bin:     file format elf64-powerpc
+
+Disassembly of section .text:
+
+0000000000000100 <.text>:
+ 100:	39 e0 00 08 	li      r15,8
+ 104:	3a 00 00 04 	li      r16,4
+ 108:	7e 2f 81 d6 	mullw   r17,r15,r16
+</code></pre>
+
+<p>After a System Reset interrupt PowerPC resumes execution at address 0x100, this is the reason why I linked the program at such address.</p>
+
+<h3>Using KVM API</h3>
+
+<p>Details about KVM API is well covered by <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a> so I'll focus in PowerPC64 only. The first thing is the initial register values, everything starts zero'ed except for:</p>
+
+<pre><code class="language-bash">$ cat vm.c</code>
+<code class="line-numbers language-c">int setup_registers(struct virtual_machine *vm)
+{
+    if (ioctl(vm-&gt;vcpufd, KVM_GET_SREGS, &amp;vm-&gt;sregs) == -1) {
+        return 10;
+    }
+    vm-&gt;sregs.pvr = 0x004d0200;
+    vm-&gt;sregs.u.s.sdr1 = 0x3fff80400004;
+
+    if (ioctl(vm-&gt;vcpufd, KVM_SET_SREGS, &amp;vm-&gt;sregs) == -1) {
+        return 11;
+    }
+
+    struct kvm_regs regs = {
+        .pc = 0x100,
+        .msr = 0x8000000000000000ULL,
+    };
+
+    if (ioctl(vm-&gt;vcpufd, KVM_SET_REGS, &amp;regs) == -1) {
+        return 12;
+    }
+
+    return 0;
+}</code></pre>
+
+<p>The full source code can be found at <a href="https://github.com/jrziviani/kvm-lab" target="_blank">my github repo</a>.</p>
+
+<p>
+<ul>
+    <li><strong>PVR - Power Version Register</strong>: the value 0x4d0200 include the version/revision for the Power8 system used.</li>
+    <li><strong>SDR1 - Storage Description Register 1</strong>: defines the high-order bit for physical base address plus the page table size. The value here is the same that QEMU uses but it won't make difference now since we're in real mode. *NOTE: this register doesn't exist anymore, page table locations are now stored in process table entries.</li>
+    <li><strong>MSR - Machine State Register</strong>: the value has the first bit set to 1, in other words indicates that the system is running in 64-bit mode.</li>
+    <li><strong>PC - Program Counter</strong>: Actually it's not a PowerPC register. In Power, the next instruction address is basically a call to instruction bcl (branch condition and link) that will put the effective address following the branch address into the LR (Link Register). Here, it's set to address 0x100 because Power will resume the execution at it (recall that we linked our assembly code to the same address).</li>
+</ul>
+</p>
+
+<p>If you compile and run the code, you'll get the expected result:</p>
+
+<pre><code class="language-bash">$ gcc -O3 vm.c -o vm</code>
+<code class="language-bash">$ ./vm</code></pre>
+<pre data-line="8,17">
+<code class="language-bash">KVM version 12
+VM created successfuly
+Registers set successfuly
+R 0: 0	R 1: 0	R 2: 0	R 3: 0	
+R 4: 0	R 5: 0	R 6: 0	R 7: 0	
+R 8: 0	R 9: 0	R10: 0	R11: 0	
+R12: 0	R13: 0	R14: 0	R15: 0	
+R16: 0	R17: 0	R18: 0	R19: 0	
+R20: 0	R21: 0	R22: 0	R23: 0	
+R24: 0	R25: 0	R26: 0	R27: 0	
+R28: 0	R29: 0	R30: 0	R31: 0	
+-------------------
+R 0: 0	R 1: 0	R 2: 0	R 3: 0	
+R 4: 0	R 5: 0	R 6: 0	R 7: 0	
+R 8: 0	R 9: 0	R10: 0	R11: 0	
+R12: 0	R13: 0	R14: 0	R15: 0
+R16: 8	R17: 4	R18: 32	R19: 0	
+R20: 0	R21: 0	R22: 0	R23: 0	
+R24: 0	R25: 0	R26: 0	R27: 0	
+R28: 0	R29: 0	R30: 0	R31: 0	
+-------------------
+exit reason: 0x0</code></pre>
+
+<h3>Little Endian</h3>
+
+<p>Power is a bi-endian architecture, it's possible to run the same in little-endian mode and it doesn't require huge modifications, here we go:</p>
+
+<pre data-line="2,8"><code class="language-bash">$ cat code.ld</code>
+<code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpcle)
+SECTIONS
+{
+    . = 0x100;
+    .text : { *(.text) }
+}</code>
+<code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian</code>
+<code class="language-bash">$ ld -T code.ld code.o -o code.bin</code></pre>
+
+<p>Good, the binary code is in little-endian mode, let's change the vm.c:</p>
+
+<pre><code class="language-bash">$ cat vm.c</code>
+<code class="line-numbers language-c">int setup_registers(struct virtual_machine *vm)
+[snip]
+    struct kvm_regs regs = {
+        .pc = 0x100,
+        .msr = 0x8000000000000001ULL,
+    };
+[snip]</code></pre>
+
+<p>That 1 bit in MSR now tells Power to run in little-endian mode.</p>
+
+<h3>References</h3>
+
+<p><ul>
+    <li><a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a></li>
+    <li><a href=">https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">64-Bit ELF V2 ABI Specification: Power Architecture</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=linux-on-power-architecture-platform-reference" target="_blank">Linux on Power Architecture Platform Reference</a></li>
+</ul></p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
