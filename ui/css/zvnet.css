@@ -66,12 +66,12 @@ ul.posts li {
 
 p.title {
     font-family: 'Dosis', sans-serif;
-    font-size: 2.0em;
+    font-size: 1.7em;
 }
 
 span.label-primary {
     font-family: 'Helvetica', 'Arial', sans-serif;
-    font-size: 0.8em;
+    font-size: 0.7em;
     font-weight: bold;
     line-height: 2.5em;
     background-color: #657b83;
@@ -116,7 +116,7 @@ pre {
 
 h1.error {
     margin-top: 0;
-    font-size: 10em !important;
+    font-size: 8em !important;
 }
 
 h2.error {
@@ -126,7 +126,7 @@ h2.error {
 }
 
 h2 {
-    font-size: 3em !important;
+    font-size: 2.3em !important;
     margin-top: 0;
 }
 
@@ -193,7 +193,7 @@ table#logic {
     width: 83%;
     height: 100%;
     font-family: 'Dosis', sans-serif;
-    font-size: 1.6em !important;
+    font-size: 1.3em !important;
 }
 
 @media (max-width: 1199px) {
@@ -214,4 +214,39 @@ table#logic {
     font-style: normal;
     font-weight: thin;
     color: #dc322f;
+}
+
+#resume {
+    width: 100%;
+    font-family: Century Gothic,CenturyGothic,AppleGothic,sans-serif;
+    font-style: normal;
+    font-weight: lighter;
+}
+
+#resume h4 {
+    font-size: 1.4em;
+}
+
+#resume-left-side {
+    float: left;
+    width: 75%;
+}
+
+#resume-left-side #title {
+    color: black;
+}
+
+#resume-left-side #title h2 {
+    margin-bottom: 0;
+}
+
+#resume-left-side #title h3 {
+    font-size: 1.5em;
+    margin-top: 0;
+    border-bottom: 1px solid black;
+}
+
+#resume-right-side {
+    float: right;
+    width: 20%;
 }
