@@ -53,6 +53,7 @@ class Blog(object):
             Rule('/feed', endpoint='feed'),
             Rule('/about', endpoint='about'),
             Rule('/articles', endpoint='articles'),
+            Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
         ])
 
@@ -104,6 +105,13 @@ class Blog(object):
         Handles requests to About page
         '''
         response = self._templates.get_template("about.tmpl")
+        return Response(response, mimetype='text/html')
+
+    def _on_resume(self, request):
+        '''
+        Handles resume page
+        '''
+        response = self._templates.get_template("resume.tmpl")
         return Response(response, mimetype='text/html')
 
     def _not_found(self):
