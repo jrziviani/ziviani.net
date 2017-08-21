@@ -47,7 +47,7 @@ def run_command(cmd):
     out, err = proc.communicate()
     if err:
         print err
-        sys.exit(1)
+        #sys.exit(1)
 
     return out
 
