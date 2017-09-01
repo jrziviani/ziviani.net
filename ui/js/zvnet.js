@@ -18,10 +18,3 @@ var list_github_repos_by_user = function(username, success, failure)
           }
     );
 }
-
-var main = function()
-{
-    list_github_repos_by_user('jrziviani');
-}
-
-main();
