@@ -38,7 +38,7 @@
 </ul>
 
 <p><strong>Why 160 bytes allocated from the stack?</strong>:</p>
-<p>32 bytes is the minimum required, then 8 times 8 bytes for the Parameter Save Area (if needed), and 8 times 8 bytes for the Local Variable Space (if need); 32 + (8 * 8) + (8 * 8) = 160 (it's also doubleword aligned). This is certainly not optimized but attends my requirement to have some generic for testing purposes.</p>
+<p>32 bytes is the minimum required, then 8 times 8 bytes for the Parameter Save Area (if needed), and 8 times 8 bytes for the Local Variable Space (if needed); 32 + (8 * 8) + (8 * 8) = 160 (it's also doubleword aligned). This is certainly not optimized but attends my requirement to have some generic for testing purposes.</p>
 
 <h3>Parameters</h3>
 
@@ -121,9 +121,9 @@ my_function:
     .string "\t=> %d\n"
 
 FUNCTION(print_sum)
-    add, 4, 4, 3
-    addis 3,2,.printf_fmt@toc@ha
-    addi 3,3,.printf_fmt@toc@l
+    add 4, 4, 3
+    addis 3, 2, .printf_fmt@toc@ha
+    addi 3, 3, .printf_fmt@toc@l
     bl printf
     nop
 ENDFUNCTION</code>
