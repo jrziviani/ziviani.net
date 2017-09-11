@@ -1,0 +1,160 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Creating functions in assembly - Part II</h2>
+
+<p>Please, checkout the <a href="/2017/functions-in-assembly">Part I</a>.</p>
+
+<h3>The Call Stack</h3>
+
+<p>The real ABI is big, it has pages and more pages explaining the low-level system, object files, dynamic linking, and so on. The fully implementation is beyond the scope of this little project, of course. Here, I will focus in a small part of it which I think is enough to accomplish what I want. Let's start with the figure below:</p>
+
+<a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a>
+
+<p>This figure is the image of a <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. In a nutshell, the call stack exists to assure that functions can live in accordance with other functions, to assure that none of your local variables or your return address will change just because you called <code class="language-c">printf()</code>, or that you can write your recursive algorithm without worrying whether it will return correctly or not. Concluding, what we <strong>really</strong> need to do is to build the call stack for our function <strong>according</strong> to the ABI.</p>
+
+<p>Thus, according to <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">this ABI</a>, I will be able to build the call stack by <em>allocating</em> 160 bytes from the stack, save each of those "things" (we'll see them soon) in the gray area, and it's done. Beautiful! But let's address some questions first.</p>
+
+<h3>PowerPC64 ABI questions</h3>
+
+<p><strong>How can I get the stack pointer?</strong></p>
+
+<p>ABI states that <blockquote>The stack pointer, r1, shall always point to the lowest address doubleword of the most recently allocated stack frame.</blockquote> PowerPC64 has 32 general purpose registers and, as per ABI, the register named <strong>R1</strong> was chosen to keep the stack address.</p>
+
+<p><strong>How do I "allocate" memory from the stack?</strong></p>
+
+<p>The stack is allocated, the operating system did that for you. In PowerPC64 (and RISC) you use <strong>store</strong> instructions to save data in memory and <strong>load</strong> instructions to load data from memory. By adding/subtracting from r1, you set the stack pointer to the right slot.</p>
+
+<p><strong>What are those "things" in the gray area?</strong></p>
+
+<ul>
+    <li><strong>Back Chain</strong>: is the address of the last stack frame. Each function stores the last stack frame address in its own to make it easy to unwind frames whenever necessary. For instance, imagine how that could be useful if you are writing the exception mechanism of your language.</li>
+    <li><strong>CR Save</strong>: In PowerPC, CR (Condition Register) is a 32-bit register that reflects the results of some operations and provides mechanism for testing/branching. Before changing any bit in it a copy must be saved in the stack and restored before returning.</li>
+    <li><strong>Reserved</strong>: This space shouldn't be touched.</li>
+    <li><strong>LR Save</strong>: LR (Link Register) has the address to which our function should return to. The caller, before calling your function, is responsible to set this register and you are responsible to keep it as is. If you intend to call another function (or a recursive call), then you need to save the LR here and restore it before returning.</li>
+    <li><strong>TOC Pointer</strong>: TOC pointer is stored in register <strong>R2</strong> as per ABI. It's also your responsibility to make sure it will have same value when your function returns. TOC stands for "Table Of Contents" and it's how PowerPC combines GOT (Global Offset Table, used to hold address for <a href="https://en.wikipedia.org/wiki/Position-independent_code">PIC</a>) and small data section. More information can be found in the references below.</li>
+    <li><strong>Parameter Save Area (optional)</strong>: In PowerPC, parameters are usually passed by registers (remember, there're 32 general purpose registers). So I don't know much about this one, I read that C variadic arguments <code class="language-c">int printf (const char *format, ... );</code> uses it. Another big advantage of using registers is that all operations in RISC architectures are done within registers so it's an overhead to [store to]/[load from] memory if we can keep data in registers.</li>
+    <li><strong>Local Variable Space (optional)</strong>: Each local variable used by the function can be stored here.</li>
+    <li>To know more about these other areas, please refer to: <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">64-Bit ELF V2 ABI Specification: Power Architecture</a>.</li>
+</ul>
+
+<p><strong>Why 160 bytes allocated from the stack?</strong>:</p>
+<p>32 bytes is the minimum required, then 8 times 8 bytes for the Parameter Save Area (if needed), and 8 times 8 bytes for the Local Variable Space (if need); 32 + (8 * 8) + (8 * 8) = 160 (it's also doubleword aligned). This is certainly not optimized but attends my requirement to have some generic for testing purposes.</p>
+
+<h3>Parameters</h3>
+
+<p>As I wrote above, parameters are passed in registers, PowerPC64 ABI assigns 8 registers for it from <strong>R3</strong> to <strong>R13</strong>. Vector and floating point data are passed in their own registers but this project don't cover them.</p>
+
+<h3>Return Values</h3>
+
+<p>As per the  ABI <blockquote>Functions that return values of the following types shall place the result in register r3 as signed or unsigned integers, as appropriate, and sign extended or zero extended to 64 bits where necessary:<ul>
+        <li>char</li>
+        <li>enum</li>
+        <li>short</li>
+        <li>int</li>
+        <li>long</li>
+        <li>pointer to any type</li>
+        <li>_Bool</li>
+        <ul></blockquote></p>
+
+<h3>Answer to <a href="/2017/functions-in-assembly">Part I</a> question</h3>
+
+<p>The code <code class="language-c">int i = my_function(5); // i == 5</code> should makes sense now: <code class="language-c">main()</code> puts 5 in <strong>R3</strong> register as argument to <code class="language-c">my_function()</code>, which is the <strong>same register used to return value</strong>. Thus, after <code class="language-c">my_function()</code> returns, <code class="language-c">main()</code> reads the return value from <strong>R3</strong> which is, in this case, still <strong>5</strong>.</p>
+
+<h3>The Code</h3>
+
+<pre><code class="language-assembly">.align 2
+.type my_function,@function;
+.globl my_function;
+my_function:
+    lis 2, .TOC.@ha
+    addi 2, 2, .TOC.@l
+    .localentry my_function, .-my_function
+    mflr 0
+    std 0, 16(1)
+    stdu 1, -160(1)
+
+    add 3, 3, 4
+
+    addi 1, 1, 160
+    ld 0, 16(1)
+    mtlr 0
+    blr</code></pre>
+
+<p>All instructions here exists to build the call stack, except <code>add 3, 3, 4</code>. The code before the computation code is named <strong>prologue</strong>. In this case, it initializes the TOC pointer in register <strong>R2</strong> for the following reason: <blockquote>All functions have a global entry point (GEP) available to any caller and pointing to the beginning of the prologue. Some functions may have a secondary entry point to optimize the cost of TOC pointer management. In particular, functions within a common module sharing the same TOC base value in r2 may be entered using a secondary entry point (the local entry point or LEP) that may bypass the code that loads a suitable TOC pointer value into the r2 register. When a dynamic or global linker transfers control from a function to another function in the same module, it may choose (but is not required) to use the local entry point when the r2 register is known to hold a valid TOC base value.</blockquote></p>
+
+<p>Basically, the prologue handles the TOC pointer, saves the Link Register and "allocates" 160 bytes by setting the stack pointer. After the computation code, we have the <strong>epilogue</strong> which restores the prologue before returning. In this case, we reset the stack pointer 160 bytes, load the LR address to <strong>R0</strong> and put that value back into the Link Register and return.</p>
+
+<p>To know more about PowerPC instruction set, checkout <a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a>.</p>
+
+<h3>The End</h3>
+
+<p>Just to make things easier we can create a macro to add both prologue/epilogue for us:</p>
+
+<pre><code class="language-bash">$ cat util.h</code>
+<code class="language-c">#ifndef _UTIL_H
+#define _UTIL_H
+
+#define FUNCTION(name)           \
+    .align 2;                    \
+    .type name, @function;       \
+    .globl name;                 \
+    name:                        \
+        lis 2, .TOC.@ha;         \
+        addi 2, 2, .TOC.@l;      \
+        .localentry name,.-name; \
+        mflr 0;                  \
+        std 0, 16(1);            \
+        stdu 1, -160(1);
+
+#define ENDFUNCTION              \
+    addi 1, 1, 160;              \
+    ld 0, 16(1);                 \
+    mtlr 0;                      \
+    blr
+
+#endif</code>
+
+<code class="language-bash">$ cat function.s</code>
+<code class="language-assembly">#include "util.h"
+.align 2
+.printf_fmt:
+    .string "\t=> %d\n"
+
+FUNCTION(print_sum)
+    add, 4, 4, 3
+    addis 3,2,.printf_fmt@toc@ha
+    addi 3,3,.printf_fmt@toc@l
+    bl printf
+    nop
+ENDFUNCTION</code>
+
+<code class="language-bash">$ cat function.c</code>
+<code class="language-c">#include &lt;stdio.h&gt;
+extern void print_sum(int a, int b);
+
+int main()
+{
+    print_sum(10, 8);
+    printf("Works! ;-)\n");
+    return 0;
+}</code>
+
+<code class="language-bash">$ gcc function.s function.c -o function</code>
+<code class="language-bash">$ ./function</code>
+<code class="language-bash">        =&gt; 18</code>
+<code class="language-bash">Works! ;-)</code>
+</pre>
+
+<h3>References</h3>
+
+<ul>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">PowerPC 64-bit ELF V2 ABI</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Application_binary_interface" target="_blank">Application binary interface</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">Call Stack</a></li>
+    <li><a href="https://www.ibm.com/developerworks/library/l-ppc/" target="_blank">PowerPC Assembly</a></li>
+    <li><a href="https://www.ibm.com/developerworks/linux/library/l-powasm4/index.html" target="_blank">Function calls and the PowerPC 64-bit ABI</a></li>
+</ul>
+
+{% include "disqus.tmpl" %}
+{% endblock %}

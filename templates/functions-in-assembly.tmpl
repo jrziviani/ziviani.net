@@ -1,6 +1,9 @@
 {% extends "base.tmpl" %}
 {% block postbody %}
 <h2>Creating functions in assembly - Part I</h2>
+
+<p><strong>UPDATE 1</strong>: <a href="/2017/functions-in-assembly-ii">Part II</a> is ready.</p>
+
 <p>In my current job I often need to write instructions in assembly. It's usually an one-line instruction so I simply embed it in C using inline asm. However, sometimes I need to write more than an one-line instruction and inline asm starts to get confused to me, in that case I prefer to write them in assembly directly.</p>
 
 <p>The point is that I still want C for 2 reasons: (1) I'm not a proficient assembly programmer and (2) C is a way more productive. So, why not writing just a function in assembly and call it in C?<p/>
