@@ -66,7 +66,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_posts(request, '2017', 'my-fpga-is-here')
+        return self._on_posts(request, '2017', 'functions-in-assembly-ii')
 
     def _on_feed(self, request):
         '''
