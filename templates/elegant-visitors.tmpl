@@ -1,0 +1,380 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Elegant Visitors</h2>
+
+<p>The visitor design pattern is a powerful programming pattern that I was not fundamentally aware. I knew the pattern, I had seen code examples using that pattern but I hadn't realized how powerful and elegant it is. I confess that I overlooked at it, but the description in sites/blogs/book usually makes it confusing to me. Nonetheless, I should have gone through the practical aspects of it instead of <strong>just</strong> reading the concepts...lessons learned!</p>
+
+<h3>Traversing the Object Hierarchy</h3>
+
+<p>It's simply there in the <a href="https://en.wikipedia.org/wiki/Visitor_pattern" target="_blank">wikipedia</a>: <blockquote>Clients traverse the object structure and call a dispatching operation accept(visitor) on an element — that "dispatches" (delegates) the request to the "accepted visitor object". The visitor object then performs the operation on the element ("visits the element").</blockquote> but I only <strong>really</strong> read it after reading the <strong>excellent</strong> <a href="http://www.craftinginterpreters.com/" target="_blank">Crafting Interpreters</a> book.</p>
+
+<p>The <a href="http://www.craftinginterpreters.com/" target="_blank">Crafting Interpreters</a> uses the visitor pattern to implement the <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree" target="_blank">abstract syntax tree (AST)</a> where the object hierarchy (which was created during the parsing phase) is the tree. Clients (be it an interpreter, a compiler, or even something to print the AST) can traverse the hierarchy by simply "visiting" the objects. I found that solution so elegant that I felt the need to write about it.</p>
+
+<h3>Coding</h3>
+
+<p>This code is obviously based on the referred book but I only wrote parts to highlight the visitor pattern.</p>
+
+<pre><code class="line-numbers language-c++">class expression_t
+{
+public:
+    virtual string accept(expression_visitor &amp;v) = 0;
+    virtual ~expression_t() {}
+};
+using expression = unique_ptr<expression_t>;
+
+class type_number : public expression_t
+{
+    int value_;
+
+public:
+    type_number(int v) :
+        value_(v)
+    {
+    }
+
+    type_number(string v) :
+        value_(stoi(v))
+    {
+    }
+
+    int get() const
+    {
+        return value_;
+    }
+
+    int accept(expression_visitor &amp;v)
+    {
+        return v.visit_number(*this);
+    }
+};
+
+class binary_expression : public expression_t
+{
+    expression left_;
+    expression right_;
+    char oper_;
+
+    public:
+    binary_expression(expression l,
+                      expression r,
+                      char o) :
+        left_(move(l)),
+        right_(move(r)),
+        oper_(o)
+    {
+    }
+
+    expression_t *left()
+    {
+        return left_.get();
+    }
+
+    expression_t *right()
+    {
+        return right_.get();
+    }
+
+    char operation() const
+    {
+        return oper_;
+    }
+
+    int accept(expression_visitor &amp;v)
+    {
+        return v.visit_binary(*this);
+    }
+};</code></pre>
+
+<p>Nothing special here. An abstract class with a pure virtual method called <code>accept()</code> and two classes implementing it. One represents numbers, other represents binary expressions like 3 * 5. The <code>accept()</code> simply calls a method from the visitor passing the <strong>instance</strong> of itself as argument.</p>
+
+
+<pre><code class="line-numbers language-c++">class expression_visitor
+{
+public:
+    virtual int  visit_number(type_number &amp;v) = 0;
+    virtual int visit_binary(binary_expression &amp;v) = 0;
+    virtual ~expression_visitor();
+};
+
+class interpreter : public expression_visitor
+{
+    int visit_number(type_number &amp;n)
+    {
+        return n.get();
+    }
+
+    int visit_binary(binary_expression &amp;b)
+    {
+        int left = evaluate(b.left());
+        int right = evaluate(b.right());
+
+        switch (b.operation()) {
+            case '+':
+                return left + right;
+                break;
+
+            case '-':
+                return left - right;
+                break;
+
+            case '*':
+                return left * right;
+                break;
+
+            case '/':
+                return left / right;
+                break;
+        }
+
+        throw exception();
+    }
+
+    int evaluate(expression_t *e)
+    {
+        return e-&gt;accept(*this);
+    }
+};</code></pre>
+
+<p>Now, the visitor. The interpreter implements the visitor, giving meaning to each object that it needs to visit. Note that <code>visit_number()</code> returns the value stored in <code>type_number</code> and <code>visit_binary()</code> evaluates both <code>left()</code> and <code>right()</code> expressions - that can hold either <code>type_number</code> or other <code>binary_expression</code>. In other words, <code>visit_binary()</code> be called recursively until it finds a <code>type_number</code>. Isn't it beautiful and elegant?</p>
+
+<p><img src="/ui/images/visitor_diagram.png" alt="visitor diagram"/></p>
+
+<h3>Full code listing</h3>
+
+<p>Here is the full code listing:</p>
+
+<pre><code class="line-numbers language-c++">#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;memory&gt;
+#include &lt;sstream&gt;
+
+using namespace std;
+
+class type_number;
+class type_string;
+class binary_expression;
+class unary_expression;
+
+class expression_visitor
+{
+public:
+    virtual int  visit_number(type_number &amp;v) = 0;
+    virtual int visit_binary(binary_expression &amp;v) = 0;
+    virtual ~expression_visitor() {}
+};
+
+class expression_t
+{
+public:
+    virtual int accept(expression_visitor &amp;v) = 0;
+    virtual ~expression_t() {}
+};
+using expression = unique_ptr&lt;expression_t&gt;;
+
+class type_number : public expression_t
+{
+    int value_;
+
+public:
+    type_number(int v) :
+        value_(v)
+    {
+    }
+
+    type_number(string v) :
+        value_(stoi(v))
+    {
+    }
+
+    int get() const
+    {
+        return value_;
+    }
+
+    int accept(expression_visitor &amp;v)
+    {
+        return v.visit_number(*this);
+    }
+};
+
+class binary_expression : public expression_t
+{
+    expression left_;
+    expression right_;
+    char oper_;
+
+    public:
+    binary_expression(expression l,
+                      expression r,
+                      char o) :
+        left_(move(l)),
+        right_(move(r)),
+        oper_(o)
+    {
+    }
+
+    expression_t *left()
+    {
+        return left_.get();
+    }
+
+    expression_t *right()
+    {
+        return right_.get();
+    }
+
+    char operation() const
+    {
+        return oper_;
+    }
+
+    int accept(expression_visitor &amp;v)
+    {
+        return v.visit_binary(*this);
+    }
+};
+
+class interpreter : public expression_visitor
+{
+    int visit_number(type_number &amp;n)
+    {
+        return n.get();
+    }
+
+    int visit_binary(binary_expression &amp;b)
+    {
+        int left = evaluate(b.left());
+        int right = evaluate(b.right());
+
+        switch (b.operation()) {
+            case '+':
+                return left + right;
+                break;
+
+            case '-':
+                return left - right;
+                break;
+
+            case '*':
+                return left * right;
+                break;
+
+            case '/':
+                return left / right;
+                break;
+        }
+
+        throw exception();
+    }
+
+    int evaluate(expression_t *e)
+    {
+        return e-&gt;accept(*this);
+    }
+
+    public:
+    void compute(expression x)
+    {
+        cout &lt;&lt; evaluate(x.get()) &lt;&lt; endl;
+    }
+};
+
+class parser
+{
+    private:
+    expression parse(string s)
+    {
+        stringstream tokens;
+        tokens &lt;&lt; s;
+        return parse_add_sub(tokens);
+    }
+
+    expression parse_add_sub(stringstream &amp;tk)
+    {
+        expression left = parse_mult_div(tk);
+
+        while (tk.peek() == '+' || tk.peek() == '-') {
+            char operation = tk.get();
+            expression right = parse_mult_div(tk);
+            left = make_unique&lt;binary_expression&gt;(move(left),
+                                                  move(right),
+                                                  operation);
+        }
+
+        return left;
+    }
+
+    expression parse_mult_div(stringstream &amp;tk)
+    {
+        expression left = parse_number(tk);
+
+        while (tk.peek() == '*' || tk.peek() == '/') {
+            char operation = tk.get();
+            expression right = parse_number(tk);
+            left = make_unique&lt;binary_expression&gt;(move(left),
+                                                  move(right),
+                                                  operation);
+        }
+
+        return left;
+    }
+
+    expression parse_number(stringstream &amp;tk)
+    {
+        string sval;
+        tk &gt;&gt; sval;
+        int value = 0;
+
+        try {
+            value = stoi(sval);
+        }
+        catch (invalid_argument &amp;e) {
+            cerr &lt;&lt; "expected a number, found " &lt;&lt; sval &lt;&lt; endl;
+            exit(1);
+        }
+        catch (out_of_range &amp;e) {
+            cerr &lt;&lt; "number " &lt;&lt; sval &lt;&lt; " overflows an integer storage" &lt;&lt; endl;
+            exit(1);
+        }
+
+        while (tk.peek() == ' ')
+            tk.get();
+
+        return make_unique&lt;type_number&gt;(value);
+    }
+
+    public:
+    expression parse_it(string s)
+    {
+        return parse(s);
+    }
+};
+
+int main()
+{
+    interpreter it;
+    parser p;
+
+    while (true) {
+        string line;
+
+        getline(cin, line);
+        if (line == "quit")
+            break;
+
+        it.compute(p.parse_it(line));
+    }
+    return 0;
+}</pre></code>
+
+<pre><code class="line-numbers language-bash">g++ -std=c++14 -Wall -Wextra -g visitors.cpp -o visitors
+% ./visitors
+3 * 5 + 8 - 3
+20
+15 * 80 / 2 + 3 * 8
+624
+quit</code></pre>
+
+
+
+{% endblock %}
