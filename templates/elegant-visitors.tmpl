@@ -14,7 +14,7 @@
 
 <p>This code is obviously based on the referred book but I only wrote parts to highlight the visitor pattern.</p>
 
-<pre><code class="line-numbers language-c++">class expression_t
+<pre><code class="language-c++">class expression_t
 {
 public:
     virtual string accept(expression_visitor &amp;v) = 0;
@@ -88,7 +88,7 @@ class binary_expression : public expression_t
 <p>Nothing special here. An abstract class with a pure virtual method called <code>accept()</code> and two classes implementing it. One represents numbers, other represents binary expressions like 3 * 5. The <code>accept()</code> simply calls a method from the visitor passing the <strong>instance</strong> of itself as argument.</p>
 
 
-<pre><code class="line-numbers language-c++">class expression_visitor
+<pre><code class="language-c++">class expression_visitor
 {
 public:
     virtual int  visit_number(type_number &amp;v) = 0;
@@ -143,7 +143,7 @@ class interpreter : public expression_visitor
 
 <p>Here is the full code listing:</p>
 
-<pre><code class="line-numbers language-c++">#include &lt;iostream&gt;
+<pre><code class="language-c++">#include &lt;iostream&gt;
 #include &lt;string&gt;
 #include &lt;memory&gt;
 #include &lt;sstream&gt;
@@ -367,7 +367,7 @@ int main()
     return 0;
 }</pre></code>
 
-<pre><code class="line-numbers language-bash">g++ -std=c++14 -Wall -Wextra -g visitors.cpp -o visitors
+<pre><code class="language-bash">g++ -std=c++14 -Wall -Wextra -g visitors.cpp -o visitors
 % ./visitors
 3 * 5 + 8 - 3
 20
