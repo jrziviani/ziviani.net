@@ -10,7 +10,7 @@
 
 <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a>
 
-<p>This figure is the image of a <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. In a nutshell, the call stack exists to assure that functions can live in accordance with other functions, to assure that none of your local variables or your return address will change just because you called <code class="language-c">printf()</code>, or that you can write your recursive algorithm without worrying whether it will return correctly or not. Concluding, what we <strong>really</strong> need to do is to build the call stack for our function <strong>according</strong> to the ABI.</p>
+<p>This figure is the image of a <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. In a nutshell, the call stack exists to assure that functions can live in accordance with other functions, to assure that none of your local variables or your return address will change just because you called <code class="prettyprint">printf()</code>, or that you can write your recursive algorithm without worrying whether it will return correctly or not. Concluding, what we <strong>really</strong> need to do is to build the call stack for our function <strong>according</strong> to the ABI.</p>
 
 <p>Thus, according to <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">this ABI</a>, I will be able to build the call stack by <em>allocating</em> 160 bytes from the stack, save each of those "things" (we'll see them soon) in the gray area, and it's done. Beautiful! But let's address some questions first.</p>
 
@@ -32,7 +32,7 @@
     <li><strong>Reserved</strong>: This space shouldn't be touched.</li>
     <li><strong>LR Save</strong>: LR (Link Register) has the address to which our function should return to. The caller, before calling your function, is responsible to set this register and you are responsible to keep it as is. If you intend to call another function (or a recursive call), then you need to save the LR here and restore it before returning.</li>
     <li><strong>TOC Pointer</strong>: TOC pointer is stored in register <strong>R2</strong> as per ABI. It's also your responsibility to make sure it will have same value when your function returns. TOC stands for "Table Of Contents" and it's how PowerPC combines GOT (Global Offset Table, used to hold address for <a href="https://en.wikipedia.org/wiki/Position-independent_code">PIC</a>) and small data section. More information can be found in the references below.</li>
-    <li><strong>Parameter Save Area (optional)</strong>: In PowerPC, parameters are usually passed by registers (remember, there're 32 general purpose registers). So I don't know much about this one, I read that C variadic arguments <code class="language-c">int printf (const char *format, ... );</code> uses it. Another big advantage of using registers is that all operations in RISC architectures are done within registers so it's an overhead to [store to]/[load from] memory if we can keep data in registers.</li>
+    <li><strong>Parameter Save Area (optional)</strong>: In PowerPC, parameters are usually passed by registers (remember, there're 32 general purpose registers). So I don't know much about this one, I read that C variadic arguments <code class="prettyprint">int printf (const char *format, ... );</code> uses it. Another big advantage of using registers is that all operations in RISC architectures are done within registers so it's an overhead to [store to]/[load from] memory if we can keep data in registers.</li>
     <li><strong>Local Variable Space (optional)</strong>: Each local variable used by the function can be stored here.</li>
     <li>To know more about these other areas, please refer to: <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">64-Bit ELF V2 ABI Specification: Power Architecture</a>.</li>
 </ul>
@@ -58,11 +58,12 @@
 
 <h3>Answer to <a href="/2017/functions-in-assembly">Part I</a> question</h3>
 
-<p>The code <code class="language-c">int i = my_function(5); // i == 5</code> should makes sense now: <code class="language-c">main()</code> puts 5 in <strong>R3</strong> register as argument to <code class="language-c">my_function()</code>, which is the <strong>same register used to return value</strong>. Thus, after <code class="language-c">my_function()</code> returns, <code class="language-c">main()</code> reads the return value from <strong>R3</strong> which is, in this case, still <strong>5</strong>.</p>
+<p>The code <code class="prettyprint">int i = my_function(5); // i ==
+5</code>should makes sense now: <code class="prettyprint">main()</code> puts 5 in <strong>R3</strong> register as argument to <code class="prettyprint">my_function()</code>, which is the <strong>same register used to return value</strong>. Thus, after <code class="prettyprint">my_function()</code> returns, <code class="prettyprint">main()</code> reads the return value from <strong>R3</strong> which is, in this case, still <strong>5</strong>.</p>
 
 <h3>The Code</h3>
 
-<pre><code class="language-assembly">.align 2
+<pre class="prettyprint linenums"><code class="language-assembly">.align 2
 .type my_function,@function;
 .globl my_function;
 my_function:
@@ -80,7 +81,7 @@ my_function:
     mtlr 0
     blr</code></pre>
 
-<p>All instructions here exists to build the call stack, except <code>add 3, 3, 4</code>. The code before the computation code is named <strong>prologue</strong>. In this case, it initializes the TOC pointer in register <strong>R2</strong> for the following reason: <blockquote>All functions have a global entry point (GEP) available to any caller and pointing to the beginning of the prologue. Some functions may have a secondary entry point to optimize the cost of TOC pointer management. In particular, functions within a common module sharing the same TOC base value in r2 may be entered using a secondary entry point (the local entry point or LEP) that may bypass the code that loads a suitable TOC pointer value into the r2 register. When a dynamic or global linker transfers control from a function to another function in the same module, it may choose (but is not required) to use the local entry point when the r2 register is known to hold a valid TOC base value.</blockquote></p>
+<p>All instructions here exists to build the call stack, except <code class="prettyprint">add 3, 3, 4</code>. The code before the computation code is named <strong>prologue</strong>. In this case, it initializes the TOC pointer in register <strong>R2</strong> for the following reason: <blockquote>All functions have a global entry point (GEP) available to any caller and pointing to the beginning of the prologue. Some functions may have a secondary entry point to optimize the cost of TOC pointer management. In particular, functions within a common module sharing the same TOC base value in r2 may be entered using a secondary entry point (the local entry point or LEP) that may bypass the code that loads a suitable TOC pointer value into the r2 register. When a dynamic or global linker transfers control from a function to another function in the same module, it may choose (but is not required) to use the local entry point when the r2 register is known to hold a valid TOC base value.</blockquote></p>
 
 <p>Basically, the prologue handles the TOC pointer, saves the Link Register and "allocates" 160 bytes by setting the stack pointer. After the computation code, we have the <strong>epilogue</strong> which restores the prologue before returning. In this case, we reset the stack pointer 160 bytes, load the LR address to <strong>R0</strong> and put that value back into the Link Register and return.</p>
 
@@ -90,8 +91,8 @@ my_function:
 
 <p>Just to make things easier we can create a macro to add both prologue/epilogue for us:</p>
 
-<pre><code class="language-bash">$ cat util.h</code>
-<code class="language-c">#ifndef _UTIL_H
+<pre class="prettyprint"><code class="language-bash">$ cat util.h</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">#ifndef _UTIL_H
 #define _UTIL_H
 
 #define FUNCTION(name)           \
@@ -112,13 +113,12 @@ my_function:
     mtlr 0;                      \
     blr
 
-#endif</code>
-
-<code class="language-bash">$ cat function.s</code>
-<code class="language-assembly">#include "util.h"
+#endif</code></pre>
+<pre class="prettyprint"><code class="language-bash">$ cat function.s</code></pre>
+<pre class="prettyprint linenums"><code class="language-assembly">#include "util.h"
 .align 2
 .printf_fmt:
-    .string "\t=> %d\n"
+    .string "\t=&gt; %d\n"
 
 FUNCTION(print_sum)
     add 4, 4, 3
@@ -126,10 +126,10 @@ FUNCTION(print_sum)
     addi 3, 3, .printf_fmt@toc@l
     bl printf
     nop
-ENDFUNCTION</code>
+ENDFUNCTION</code></pre>
 
-<code class="language-bash">$ cat function.c</code>
-<code class="language-c">#include &lt;stdio.h&gt;
+<pre class="prettyprint"><code class="language-bash">$ cat function.c</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">#include &lt;stdio.h&gt;
 extern void print_sum(int a, int b);
 
 int main()
@@ -137,13 +137,12 @@ int main()
     print_sum(10, 8);
     printf("Works! ;-)\n");
     return 0;
-}</code>
+}</code></pre>
 
-<code class="language-bash">$ gcc function.s function.c -o function</code>
-<code class="language-bash">$ ./function</code>
-<code class="language-bash">        =&gt; 18</code>
-<code class="language-bash">Works! ;-)</code>
-</pre>
+<pre class="prettyprint"><code class="language-bash">$ gcc function.s function.c -o function
+$ ./function
+        =&gt; 18
+Works! ;-)</code></pre>
 
 <h3>References</h3>
 

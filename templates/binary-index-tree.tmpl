@@ -99,7 +99,7 @@
 
 <p>Suppose I want to add <strong>50</strong> to the item at index <strong>17</strong>, I'll do it by using this code:</p>
 
-<pre><code class="line-numbers language-c++">void update(auto &amp;v, size_t index, int value)
+<pre class="prettyprint linenums"><code class="language-c++">void update(auto &amp;v, size_t index, int value)
 {
     while (index &lt; v.size()) {
         v[index] += value;
@@ -203,7 +203,7 @@ update(array, 17, 50);</code></pre>
 
 <p>Now, I'm going to read the sum of frequencies:</p>
 
-<pre><code class="line-numbers language-c++">int read(const auto &amp;v, size_t index)
+<pre class="prettyprint linenums"><code class="language-c++">int read(const auto &amp;v, size_t index)
 {
     if (index &gt;= v.size())
         throw exception();
@@ -217,9 +217,9 @@ update(array, 17, 50);</code></pre>
 }
 
 // caller
-read(array, 31);</code>
+read(array, 31);</code></pre>
 
-<code class="language-bash">% ./bit
+<pre class="prettyprint"><code class="language-bash">$ ./bit
 896</code></pre>
 
 <p><img src="/ui/images/bit_debug2.png" alt="binary index tree read value"/></p>
@@ -232,8 +232,8 @@ read(array, 31);</code>
 
 <p>If you print <strong>i &amp; -i</strong> in a sequence of i, you will get the following pattern:</p>
 
-<pre><code class="language-python">for i in range(33):
-    print i & -i,
+<pre class="prettyprint"><code class="language-python">for i in range(33):
+    print i &amp; -i,
 
 0 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 16 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 32</code></pre>
 

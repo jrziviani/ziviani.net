@@ -14,13 +14,13 @@
 
 <p>This code is obviously based on the referred book but I only wrote parts to highlight the visitor pattern.</p>
 
-<pre><code class="language-c++">class expression_t
+<pre class="prettyprint linenums"><code class="language-c++">class expression_t
 {
 public:
-    virtual string accept(expression_visitor &amp;v) = 0;
+    virtual int accept(expression_visitor &amp;v) = 0;
     virtual ~expression_t() {}
 };
-using expression = unique_ptr<expression_t>;
+using expression = unique_ptr&lt;expression_t&gt;;
 
 class type_number : public expression_t
 {
@@ -85,10 +85,10 @@ class binary_expression : public expression_t
     }
 };</code></pre>
 
-<p>Nothing special here. An abstract class with a pure virtual method called <code>accept()</code> and two classes implementing it. One represents numbers, other represents binary expressions like 3 * 5. The <code>accept()</code> simply calls a method from the visitor passing the <strong>instance</strong> of itself as argument.</p>
+<p>Nothing special here. An abstract class with a pure virtual method called <code class="prettyprint">accept()</code> and two classes implementing it. One represents numbers, other represents binary expressions like 3 * 5. The <code class="prettyprint">accept()</code> simply calls a method from the visitor passing the <strong>instance</strong> of itself as argument.</p>
 
 
-<pre><code class="language-c++">class expression_visitor
+<pre class="prettyprint linenums"><code class="language-c++">class expression_visitor
 {
 public:
     virtual int  visit_number(type_number &amp;v) = 0;
@@ -135,7 +135,7 @@ class interpreter : public expression_visitor
     }
 };</code></pre>
 
-<p>Now, the visitor. The interpreter implements the visitor, giving meaning to each object that it needs to visit. Note that <code>visit_number()</code> returns the value stored in <code>type_number</code> and <code>visit_binary()</code> evaluates both <code>left()</code> and <code>right()</code> expressions - that can hold either <code>type_number</code> or other <code>binary_expression</code>. In other words, <code>visit_binary()</code> be called recursively until it finds a <code>type_number</code>. Isn't it beautiful and elegant?</p>
+<p>Now, the visitor. The interpreter implements the visitor, giving meaning to each object that it needs to visit. Note that <code class="prettyprint">visit_number()</code> returns the value stored in <code class="prettyprint">type_number</code> and <code class="prettyprint">visit_binary()</code> evaluates both <code class="prettyprint">left()</code> and <code class="prettyprint">right()</code> expressions - that can hold either <code class="prettyprint">type_number</code> or other <code class="prettyprint">binary_expression</code>. In other words, <code class="prettyprint">visit_binary()</code> be called recursively until it finds a <code class="prettyprint">type_number</code>. Isn't it beautiful and elegant?</p>
 
 <p><img src="/ui/images/visitor_diagram.png" alt="visitor diagram"/></p>
 
@@ -143,7 +143,7 @@ class interpreter : public expression_visitor
 
 <p>Here is the full code listing:</p>
 
-<pre><code class="language-c++">#include &lt;iostream&gt;
+<pre class="prettyprint linenums"><code class="language-c++">#include &lt;iostream&gt;
 #include &lt;string&gt;
 #include &lt;memory&gt;
 #include &lt;sstream&gt;
@@ -367,7 +367,7 @@ int main()
     return 0;
 }</pre></code>
 
-<pre><code class="language-bash">g++ -std=c++14 -Wall -Wextra -g visitors.cpp -o visitors
+<pre class="prettyprint linenums"><code class="language-bash">g++ -std=c++14 -Wall -Wextra -g visitors.cpp -o visitors
 % ./visitors
 3 * 5 + 8 - 3
 20
