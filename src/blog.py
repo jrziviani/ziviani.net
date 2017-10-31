@@ -53,7 +53,7 @@ class Blog(object):
             Rule('/feed', endpoint='feed'),
             Rule('/about', endpoint='about'),
             Rule('/articles', endpoint='articles'),
-            Rule('/resume', endpoint='resume'),
+            #Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
         ])
 
