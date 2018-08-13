@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 # blog.py - maps requests to methods and handles them accordingly.
 # Copyright (C) 2017 Jose Ricardo Ziviani
