@@ -1,0 +1,180 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Spying around...</h2>
+<p><strong>2018 - Aug - 12</strong></p>
+
+<p>This small project examines the memory of another process - the game <a href="https://wiki.gnome.org/Apps/Mines" target="_blank">gnome-mines</a> - and print a map with all mines exposed. I like the fun of reading other's process memory so I thought it would be nice to report it here. The source code can be found at <a href="https://gist.github.com/jrziviani/b28bd7e15d8ef6fd28f63c44665f32c6" target="_blank">Github Gist</a>.</p>
+
+<p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_example.png" alt="mines example"/></p>
+
+<p>When you click on a cell the game checks whether you're safe or not. So, the mouse click triggers an event that calls a function to make that check. Using the command <code class="prettyprint">strings</code> we can find the function names available.</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">% strings /usr/bin/gnome-mines
+...
+minefield_clear_mine
+minefield_multi_release
+minefield_is_location
+minefield_is_cleared
+minefield_has_mine    &lt;=====
+minefield_is_clock_started
+return_value != NULL
+completedField
+...</code></pre>
+
+<p>A huge amount of strings are printed but after a quick look I found the very promising <code class="prettyprint">minefiled_has_mine</code>. If it's a function than I believe it's called to check whether you clicked on a mine and it =&gt; must &lt;= have a map containing the whole solution.</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">% gnome-mines&amp;
+[1] 28978
+
+% gdb -p 28978
+(gdb) disassemble minefield_has_mine 
+Dump of assembler code for function minefield_has_mine:
+   0x000056551241db30 &lt;+0&gt;:	endbr64 
+   0x000056551241db34 &lt;+4&gt;:	test   %rdi,%rdi
+   0x000056551241db37 &lt;+7&gt;:	je     0x56551241db50 &lt;minefield_has_mine+32&gt;
+   0x000056551241db39 &lt;+9&gt;:	imul   0x3c(%rdi),%esi
+   0x000056551241db3d &lt;+13&gt;:	mov    0x30(%rdi),%rax
+   0x000056551241db41 &lt;+17&gt;:	add    %esi,%edx
+   0x000056551241db43 &lt;+19&gt;:	mov    (%rax,%rdx,8),%rax
+   0x000056551241db47 &lt;+23&gt;:	mov    0x20(%rax),%eax
+   0x000056551241db4a &lt;+26&gt;:	retq
+   0x000056551241db4b &lt;+27&gt;:	nopl   0x0(%rax,%rax,1)
+   0x000056551241db50 &lt;+32&gt;:	sub    $0x8,%rsp
+   0x000056551241db54 &lt;+36&gt;:	lea    0x6829(%rip),%rdx        # 0x565512424384
+   0x000056551241db5b &lt;+43&gt;:	lea    0x7cde(%rip),%rsi        # 0x565512425840
+   0x000056551241db62 &lt;+50&gt;:	xor    %edi,%edi
+   0x000056551241db64 &lt;+52&gt;:	callq  0x565512417390 &lt;g_return_if_fail_warning@plt&gt;
+   0x000056551241db69 &lt;+57&gt;:	xor    %eax,%eax
+   0x000056551241db6b &lt;+59&gt;:	add    $0x8,%rsp
+   0x000056551241db6f &lt;+63&gt;:	retq
+End of assembler dump.
+
+(gdb) b *0x000056551241db39
+Breakpoint 1 at 0x56551241db39
+(gdb) c
+Continuing</code></pre>
+
+<p>Great <code class="prettyprint">minefield_has_mine</code> is a function indeed! By clicking on a cell the game should call that function and GDB will luckily stop at the required point.</p>
+
+<pre class="prettyprint linenums"><code class="language-assembly">Thread 1 "gnome-mines" hit Breakpoint 1, 0x000056551241db39 in minefield_has_mine ()
+(gdb) display/i $pc
+1: x/i $pc
+=&gt; 0x56551241db39 &lt;minefield_has_mine+9&gt;:	imul   0x3c(%rdi),%esi
+(gdb) x /gx $rdi + 0x3c
+0x56551330cccc:	0x0000000000000008
+(gdb) print /x $esi
+$1 = 0x0</code></pre>
+
+<p>Hmmm, it's multiplying <code class="prettyprint">$rdi+0x3c = 8</code> with <code class="prettyprint">$esi = 0</code>. At first sight it seems that <code class="prettyprint">$rdi+0x3c</code> is the number of lines in the board and <code class="prettyprint">$esi</code> is the selected column cell. After the multiplication <code class="prettyprint">$esi</code> will store the skipped cells to reach to the required cell.</p>
+
+<p>Let's take a deeper look at <code class="prettyprint">$rdi</code>, it seems to have more information for us.</p>
+<pre class="prettyprint linenums"><code class="language-assembly">(gdb) x /30gx $rdi
+0x56551330cc90:	0x000056551316a5a0	0x0000000000000004
+0x56551330cca0:	0x00005655133c7be0	0x000056551330cc70
+0x56551330ccb0:	0x0000000800000008	0x000000000000000a
+0x56551330ccc0:	0x00005655131327c0	0x0000000800000008
+0x56551330ccd0:	0x0000000100000000	0x0000000000000000
+0x56551330cce0:	0x00007f19aac74450	0x0000001c00000004
+0x56551330ccf0:	0x0000000000000000	0x0000000000000000
+0x56551330cd00:	0x000056551332ee40	0x0000565512fa49e0
+0x56551330cd10:	0x0000000000000000	0xffffffffffffffff
+0x56551330cd20:	0x00000000ffffffff	0x0000000000000000
+0x56551330cd30:	0x0000565512e76170	0x0000000000000001
+0x56551330cd40:	0x0000000000000000	0x000056551330cce0
+0x56551330cd50:	0x0000565512d46020	0x0000000000001202
+0x56551330cd60:	0x0000565512d90a40	0x000056551330cb30
+0x56551330cd70:	0x000056551332ecc0	0x0000000000000000</code></pre>
+
+<p>Well, the register seems to have the address of the main game object. At <code class="prettyprint">0x56551330ccb0</code> we can find the board size (8x8) and the total number of mines (0xa =&gt; 10).</p>
+
+<pre class="prettyprint linenums"><code class="language-assembly">(gdb) ni
+0x000056551241db3d in minefield_has_mine ()
+1: x/i $pc
+=&gt; 0x56551241db3d &lt;minefield_has_mine+13&gt;:	mov    0x30(%rdi),%rax
+(gdb) x /gx $rdi+0x30
+0x56551330ccc0:	0x00005655131327c0
+COMMENT: $rdi+0x30 is an address (possibly pointing to another object).
+
+(gdb) ni
+0x000056551241db41 in minefield_has_mine ()
+1: x/i $pc
+=&gt; 0x56551241db41 &lt;minefield_has_mine+17&gt;:	add    %esi,%edx
+(gdb) print /x $edx
+$2 = 0x0
+(gdb) print /x $esi
+$3 = 0x0
+COMMENT: $edx has the selected cell line number, it sums to the $esi found above to have the offset to required cell.
+
+(gdb) ni
+0x000056551241db43 in minefield_has_mine ()
+1: x/i $pc
+=&gt; 0x56551241db43 &lt;minefield_has_mine+19&gt;:	mov    (%rax,%rdx,8),%rax
+COMMENT: copy the content of [$rdx * 8 + $rax] to $rax. That 8 has nothing to do with the map, it&acute;s possible the number of bytes between different objects of that map.
+
+(gdb) ni
+0x000056551241db47 in minefield_has_mine ()
+1: x/i $pc
+=&gt; 0x56551241db47 &lt;minefield_has_mine+23&gt;:	mov    0x20(%rax),%eax
+COMMENT: $rax+0x20 is our cell: 0 if empty, otherwise 1. Copying it to $eax and retuning (next instruction) will return this value.
+
+(gdb) ni
+0x000056551241db4a in minefield_has_mine ()
+1: x/i $pc
+=&gt; 0x56551241db4a &lt;minefield_has_mine+26&gt;:	retq</code></pre>
+
+<p><img src="/ui/images/mines_explained.png" alt="mines explained"/></p>
+
+<p>The job now is to translate that assembly code in C, which is straightforward. My code simply finds the gnome-mines initial heap address, loop that memory looking for that row, size, mines pattern and uses the same offset to reach to the mine map values. Code is easier than the job to find an existing program without the source.</p>
+
+<pre class="prettyprint linenums"><code class="language-c++">base frame = {stoi(argv[2]), stoi(argv[3]), stoi(argv[4])};
+auto address = search_memory(fd, addresses, frame);
+if (address == 0) {
+    cerr &lt;&lt; "cannot find the board in memory.\n";
+    return 4;
+}
+
+pread(fd, &amp;location, sizeof(uint64_t), static_cast&lt;off_t&gt;(address + 0x30));
+pread(fd, &amp;mine_pos, sizeof(int32_t), static_cast&lt;off_t&gt;(address + 0x3c));
+
+for (int i = 0; i &lt; frame.height; ++i) {
+    for (int j = 0; j &lt; frame.width; ++j) {
+        auto index = 8 * (mine_pos * j + i);
+        pread(fd, &amp;has_mine_p, sizeof(uint64_t),
+                static_cast&lt;off_t&gt;((location + index)));
+        pread(fd, &amp;has_mine, sizeof(int32_t),
+                static_cast&lt;off_t&gt;(has_mine_p + 0x20));
+        cout &lt;&lt; has_mine &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+
+<p>NOTE: I just found out that gnome-mines is written in <a href="https://en.wikipedia.org/wiki/Vala_(programming_language)" target="_blank">Vala language</a> so maybe reading it in assembly is a better idea. :-D</p>
+
+<h3>How to use it</h3>
+
+<pre class="prettyprint linenums"><code class="language-bash">% g++ -std=c++17 -g3 mines.cpp -o mines
+% gnome-mines&
+[1] 13264
+
+% ./mines 13264 16 16 40
+0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0
+1 1 0 0 0 0 0 0 1 0 1 0 0 1 0 1
+1 0 0 0 0 0 0 1 0 1 0 0 0 1 0 0
+1 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1
+0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1
+0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0
+0 0 0 0 1 0 1 1 0 0 0 0 0 0 0 0
+0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0
+0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 1 0 1 0 0 0 0 1 0 1 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0
+0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0</code></pre>
+
+<p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_final.png" alt="mines final"/></p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}

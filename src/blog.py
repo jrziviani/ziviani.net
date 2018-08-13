@@ -66,7 +66,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_posts(request, '2017', 'elegant-visitors')
+        return self._on_posts(request, '2018', 'spying-around')
 
     def _on_feed(self, request):
         '''
