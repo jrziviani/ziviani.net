@@ -3,7 +3,7 @@
 <h2>Spying around...</h2>
 <p><strong>2018 - Aug - 12</strong></p>
 
-<p>This small project examines the memory of another process - the game <a href="https://wiki.gnome.org/Apps/Mines" target="_blank">gnome-mines</a> - and print a map with all mines exposed. I like the fun of reading other's process memory so I thought it would be nice to report it here. The source code can be found at <a href="https://gist.github.com/jrziviani/b28bd7e15d8ef6fd28f63c44665f32c6" target="_blank">Github Gist</a>.</p>
+<p>This small project examines the memory of another process and it prints a map with all mines exposed. I like the fun of reading other's process memory so I thought it would be nice to report it here. The source code is at <a href="https://gist.github.com/jrziviani/b28bd7e15d8ef6fd28f63c44665f32c6" target="_blank">Github Gist</a>.</p>
 
 <p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_example.png" alt="mines example"/></p>
 
@@ -21,7 +21,7 @@ return_value != NULL
 completedField
 ...</code></pre>
 
-<p>A huge amount of strings are printed but after a quick look I found the very promising <code class="prettyprint">minefiled_has_mine</code>. If it's a function than I believe it's called to check whether you clicked on a mine and it =&gt; must &lt;= have a map containing the whole solution.</p>
+<p>The amount of printed strings is scary. Yet, after a quick look, we find very promising names such as <code class="prettyprint">minefiled_has_mine</code>. If that's a function it needs to know where the mines are and our job is to know how to locate them and read them.</p>
 
 <pre class="prettyprint linenums"><code class="language-bash">% gnome-mines&amp;
 [1] 28978
@@ -65,7 +65,7 @@ Continuing</code></pre>
 (gdb) print /x $esi
 $1 = 0x0</code></pre>
 
-<p>Hmmm, it's multiplying <code class="prettyprint">$rdi+0x3c = 8</code> with <code class="prettyprint">$esi = 0</code>. At first sight it seems that <code class="prettyprint">$rdi+0x3c</code> is the number of lines in the board and <code class="prettyprint">$esi</code> is the selected column cell. After the multiplication <code class="prettyprint">$esi</code> will store the skipped cells to reach to the required cell.</p>
+<p>Hmmm, it's multiplying <code class="prettyprint">$rdi+0x3c = 8</code> with <code class="prettyprint">$esi = 0</code>. At first sight, it seems that <code class="prettyprint">$rdi+0x3c</code> is the number of lines in the board and <code class="prettyprint">$esi</code> is the selected column cell. After the multiplication <code class="prettyprint">$esi</code> will store the skipped cells to reach to the required cell.</p>
 
 <p>Let's take a deeper look at <code class="prettyprint">$rdi</code>, it seems to have more information for us.</p>
 <pre class="prettyprint linenums"><code class="language-assembly">(gdb) x /30gx $rdi
@@ -124,7 +124,7 @@ COMMENT: $rax+0x20 is our cell: 0 if empty, otherwise 1. Copying it to $eax and 
 
 <p><img src="/ui/images/mines_explained.png" alt="mines explained"/></p>
 
-<p>The job now is to translate that assembly code in C, which is straightforward. My code simply finds the gnome-mines initial heap address, loop that memory looking for that row, size, mines pattern and uses the same offset to reach to the mine map values. Code is easier than the job to find an existing program without the source.</p>
+<p>Now the job is to translate that assembly code to C language, which is quite straightforward. My code uses the initial heap address and loops the whole range looking for the [row, column, mine]. Then, we need to use the same offsets to access the map.</p>
 
 <pre class="prettyprint linenums"><code class="language-c++">base frame = {stoi(argv[2]), stoi(argv[3]), stoi(argv[4])};
 auto address = search_memory(fd, addresses, frame);
@@ -147,8 +147,6 @@ for (int i = 0; i &lt; frame.height; ++i) {
     }
     cout &lt;&lt; endl;
 }</code></pre>
-
-<p>NOTE: I just found out that gnome-mines is written in <a href="https://en.wikipedia.org/wiki/Vala_(programming_language)" target="_blank">Vala language</a> so maybe reading it in assembly is a better idea. :-D</p>
 
 <h3>How to use it</h3>
 
