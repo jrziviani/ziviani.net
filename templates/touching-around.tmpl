@@ -1,0 +1,47 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Touching around...</h2>
+<p><strong>2018 - Aug - 20</strong></p>
+
+<p>Just an update regarding my last <a href="/2018/spying-around">article</a>. I was asked to write a code to change other's process memory and it was straighforward as well.</p>
+
+
+<pre class="prettyprint linenums"><code class="language-diff">--- /home/ziviani/temp/mines.cpp.1
++++ /home/ziviani/temp/mines.cpp
+@@ -77,7 +77,7 @@
+     }
+ 
+     string mem_path("/proc/" + string(argv[1]) + "/mem");
+-    int fd = open(mem_path.c_str(), O_RDONLY);
++    int fd = open(mem_path.c_str(), O_RDWR);
+     if (fd &lt; 0) {
+         cerr &lt;&lt; "cannot open " &lt;&lt; mem_path &lt;&lt; ".\n";
+         return 3;
+@@ -93,6 +93,7 @@
+     pread(fd, &amp;location, sizeof(uint64_t), static_cast&lt;off_t&gt;(address + 0x30));
+     pread(fd, &amp;mine_pos, sizeof(int32_t), static_cast&lt;off_t&gt;(address + 0x3c));
+ 
++    int32_t test = 1;
+     for (int i = 0; i &lt; frame.height; ++i) {
+         for (int j = 0; j &lt; frame.width; ++j) {
+             auto index = 8 * (mine_pos * j + i);
+@@ -100,10 +101,12 @@
+                     static_cast&lt;off_t&gt;((location + index)));
+             pread(fd, &amp;has_mine, sizeof(int32_t),
+                     static_cast&lt;off_t&gt;(has_mine_p + 0x20));
++            pwrite(fd, &amp;test, sizeof(int32_t), static_cast&lt;off_t&gt;(has_mine_p + 0x20));
+             cout &lt;&lt; has_mine &lt;&lt; " ";
+         }
+         cout &lt;&lt; endl;
+     }
++
+     close(fd);
+ 
+     return 0;</code></pre>
+
+<p>If you don't see what I did, I set 1 to the whole map. In other words, mines in every cell. :-)</p>
+
+<p><img src="/ui/images/mines_written.png" alt="mines written"/></p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
