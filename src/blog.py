@@ -25,10 +25,13 @@ from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import NotFound
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import redirect
+from werkzeug.urls import url_fix
 from templates import templates
 
 import logging
 import hashlib
+import re
 
 
 # --
@@ -55,6 +58,7 @@ class Blog(object):
             Rule('/articles', endpoint='articles'),
             #Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
+            Rule('/search', endpoint='search'),
         ])
 
         logging.basicConfig()
@@ -113,6 +117,27 @@ class Blog(object):
         '''
         response = self._templates.get_template("resume.tmpl")
         return Response(response, mimetype='text/html')
+
+    def _on_search(self, request):
+        '''
+        Handles internal searches using DuckDuckGo
+        '''
+        if request.method != 'POST':
+            return self._on_index(request)
+
+        query = re.sub(r'[^0-9A-Za-z-+., ]',
+                       r' ',
+                       request.form['search'],
+                       flags=re.UNICODE)
+
+        if len(query) > 25:
+            query = query[:25]
+
+        search_q = 'https://duckduckgo.com/?q=site:ziviani.net %s' % query
+        search_q+= '&kae=dark&kj=%23282828&k7=%23383838&k5=1&kx=%23f7ca88'
+        search_q+= '&kt=n&k5=1&t=ziviani.net&km=l&kn=0&kae=dark&kh=1&kg=p'
+
+        return redirect(url_fix(search_q))
 
     def _not_found(self):
         '''
