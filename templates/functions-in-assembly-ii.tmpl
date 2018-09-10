@@ -67,8 +67,8 @@
 .type my_function,@function;
 .globl my_function;
 my_function:
-    lis 2, .TOC.@ha
-    addi 2, 2, .TOC.@l
+    addis 2, 12, .TOC.-my_function@ha;
+    addi 2, 2, .TOC.-my_function@l;
     .localentry my_function, .-my_function
     mflr 0
     std 0, 16(1)
@@ -95,26 +95,26 @@ my_function:
 <pre class="prettyprint linenums"><code class="language-c">#ifndef _UTIL_H
 #define _UTIL_H
 
-#define FUNCTION(name)           \
-    .align 2;                    \
-    .type name, @function;       \
-    .globl name;                 \
-    name:                        \
-        lis 2, .TOC.@ha;         \
-        addi 2, 2, .TOC.@l;      \
-        .localentry name,.-name; \
-        mflr 0;                  \
-        std 0, 16(1);            \
+#define FUNCTION(name)              \
+    .align 2;                       \
+    .type name, @function;          \
+    .globl name;                    \
+    name:                           \
+        addis 2, 12, .TOC.-name@ha; \
+        addi 2, 2, .TOC.-name@l;    \
+        .localentry name,.-name;    \
+        mflr 0;                     \
+        std 0, 16(1);               \
         stdu 1, -160(1);
 
-#define ENDFUNCTION              \
-    addi 1, 1, 160;              \
-    ld 0, 16(1);                 \
-    mtlr 0;                      \
-    blr
+#define ENDFUNCTION                 \
+    addi 1, 1, 160;                 \
+    ld 0, 16(1);                    \
+    mtlr 0;                         \
+    blr;
 
 #endif</code></pre>
-<pre class="prettyprint"><code class="language-bash">$ cat function.s</code></pre>
+<pre class="prettyprint"><code class="language-bash">$ cat function.S</code></pre>
 <pre class="prettyprint linenums"><code class="language-assembly">#include "util.h"
 .align 2
 .printf_fmt:
@@ -132,14 +132,14 @@ ENDFUNCTION</code></pre>
 <pre class="prettyprint linenums"><code class="language-c">#include &lt;stdio.h&gt;
 extern void print_sum(int a, int b);
 
-int main()
+int main(void)
 {
     print_sum(10, 8);
     printf("Works! ;-)\n");
     return 0;
 }</code></pre>
 
-<pre class="prettyprint"><code class="language-bash">$ gcc function.s function.c -o function
+<pre class="prettyprint"><code class="language-bash">$ gcc function.S function.c -o function
 $ ./function
         =&gt; 18
 Works! ;-)</code></pre>
