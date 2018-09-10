@@ -1,0 +1,123 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Linux Crash Tool - Part I</h2>
+<p><strong>2018 - Sept 04</strong></p>
+
+<p><a href="https://people.redhat.com/anderson/crash_whitepaper/" target="_blank">Crash tool</a> is basically a sorcery that uses <a href="https://www.gnu.org/software/gdb/" target="_blank">GDB</a> and black magic to create an impressive Linux debugging tool. At first sight I though it's used to debug crash dump files but it's even better: you can inspect your system memory live!</p>
+
+<p>I've some recent experiences with Crash and I need to write it down here before I forget everything...again 🤣.</p>
+
+<h3>Introducing Crash</h3>
+
+<p>After installing the tool and your kernel debug symbols package <small>(Fedora hint: <code class="prettyprint">sudo debuginfo-install kernel</code>)</small>, run:</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">sudo crash /usr/lib/debug/usr/lib/modules/$(uname -r)/vmlinux
+crash 7.2.3++
+[snip...]
+      KERNEL: vmlinux
+    DUMPFILE: /proc/kcore
+        CPUS: 128
+        DATE: Wed Sep  5 07:53:06 2018
+      UPTIME: 00:04:42
+LOAD AVERAGE: 0.84, 0.44, 0.17
+       TASKS: 1294
+    NODENAME: boston118
+     RELEASE: 4.19.0-rc1zvn+
+     VERSION: #4 SMP Thu Aug 30 15:55:20 CDT 2018
+     MACHINE: ppc64le  (2250 Mhz)
+      MEMORY: 512 GB
+         PID: 6311
+     COMMAND: "crash"
+        TASK: c000003fe0631380  [THREAD_INFO: c000003e28760000]
+         CPU: 16
+       STATE: TASK_RUNNING (ACTIVE)
+
+crash&gt;</code></pre>
+
+<h3>Basic Usage</h3>
+
+<p>These are the basic commands. The <a href="https://people.redhat.com/anderson/crash_whitepaper/#COMMAND_SET" target="_blank">documentation</a> lists them all.</p>
+
+<pre class="prettyprint linenums"><code class="language-bash"># lists commands.
+crash&gt; help
+# gets help for a particular command.
+crash&gt; help &lt;command&gt;
+# lists all process running.
+crash&gt; ps
+# filters the list with grep.
+crash&gt; ps | grep &lt;pattern&gt;
+# sets the context to a particular process.
+crash&gt; set &lt;pid&gt;
+# backtrace of the current context (set ^).
+crash&gt; bt
+# backtrace of that pid.
+crash&gt; bt &lt;pid&gt;
+# shows kernel messages.
+crash&gt; log
+# prints the content of address in a structured format, any kernel struct may be used. Garbage will be printed if data doesn't match the struct.
+crash&gt; struct &lt;struct name&gt; &lt;address&gt;
+# prints the struct, function, symbol definition.
+crash&gt; whatis &lt;name&gt;
+
+# GDB commands
+# prints the content of a memory location.
+crash&gt; x /fmt &lt;address&gt;
+# disassembles a function by its address in .text or symbol name.
+crash&gt; dis &lt;address&gt; | &lt;function name&gt;
+# prints the source file around the line specified.
+crash&gt; l &lt;function name&gt;:&lt;line number&gt;</code></pre>
+
+<p>Kernel modules symbols aren't loaded automatically and it's important to know how to add them (actually it's a GDB command). See how I load KVM symbols.</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">crash&gt; l kvm_init
+Function "kvm_init" not defined.
+gdb: gdb request failed: l kvm_init
+
+# another terminal
+$ cd /sys/module/kvm/sections/
+$ sudo cat .text
+0xc008000010b80000
+$ sudo cat .data
+0xc008000010bab5f8
+$ sudo cat .bss
+0xc008000010bae680
+
+# back to crash terminal
+crash&gt; add-symbol-file /home/ziviani/linux/arch/powerpc/kvm/kvm.o 0xc008000010b80000 -s .data 0xc008000010bab5f8 -s .bss 0xc008000010bae680
+add symbol table from file "/home/ziviani/linux/arch/powerpc/kvm/kvm.o" at
+        .text_addr = 0xc008000010b80000
+        .data_addr = 0xc008000010bab5f8
+        .bss_addr = 0xc008000010bae680
+Reading symbols from /home/ziviani/linux/arch/powerpc/kvm/kvm.o...done.
+
+crash&gt; l kvm_init
+3987            kvm_arch_vcpu_put(vcpu);
+3988    }
+3989    
+3990    int kvm_init(void *opaque, unsigned vcpu_size, unsigned vcpu_align,
+3991                      struct module *module)
+3992    {
+3993            int r;
+3994            int cpu;
+3995    
+3996            r = kvm_arch_init(opaque);
+
+# we can use the function address instead
+crash&gt; l *0xc008000010b80000+0x5e30
+3987            kvm_arch_vcpu_put(vcpu);
+3988    }
+...</code></pre>
+
+<p><strong>Notes:</strong>
+<ul>
+    <li><code class="prettyprint">0xc008000010b80000</code> is the address chose by Linux to load KVM.</li>
+    <li><code class="prettyprint">0x5e30</code> is the offset to reach <code class="prettyprint">kvm_init</code> function:</li>
+<pre class="prettyprint linenums"><code class="language-bash">$ objdump -t kvm.o | grep kvm_init
+0000000000005e30 g F .text 0000000000000330 0x60 kvm_init</code></pre>
+</ul>
+</p>
+
+<p>In my next post I intend to do something more practical with that for IBM PowerPC, stay tuned.</p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}

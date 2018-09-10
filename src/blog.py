@@ -70,7 +70,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_posts(request, '2018', 'touching-around')
+        return self._on_posts(request, '2018', 'crash-tool-part-I')
 
     def _on_feed(self, request):
         '''
