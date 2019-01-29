@@ -56,6 +56,7 @@ class Blog(object):
             Rule('/feed', endpoint='feed'),
             Rule('/about', endpoint='about'),
             Rule('/articles', endpoint='articles'),
+            Rule('/links', endpoint='hotlinks'),
             #Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
             Rule('/search', endpoint='search'),
@@ -102,6 +103,13 @@ class Blog(object):
         Handles request to articles page
         '''
         response = self._templates.get_template("article.tmpl")
+        return Response(response, mimetype='text/html')
+
+    def _on_hotlinks(self, request):
+        '''
+        Handles request to link page
+        '''
+        response = self._templates.get_template("hotlinks-v1.tmpl")
         return Response(response, mimetype='text/html')
 
     def _on_about(self, request):
