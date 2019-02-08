@@ -177,8 +177,6 @@ static int my_fast_server_handler(request_rec *r)
 
     // call the handler function
     return methods[r-&gt;method_number](r);
-
-    return OK;
 }
 
 static int get_handler(request_rec *r)
@@ -192,8 +190,9 @@ static int get_handler(request_rec *r)
     r-&gt;content_type = "text/html";
 
     // return OK if only header requested or no argument
-    if (r-&gt;header_only) return OK;
-    if (r-&gt;args == 0) return OK;
+    if (r-&gt;header_only || r-&gt;args == 0) {
+        return OK;
+    }
 
     ap_rprintf(r, "&lt;h1&gt;[GET] Your query string: %s&lt;/h1&gt;", query);
 
@@ -209,7 +208,6 @@ static int post_handler(request_rec *r)
 // Put http handler
 static int put_handler(request_rec *r)
 {
-
     return OK;
 }
 
