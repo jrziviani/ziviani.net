@@ -71,7 +71,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_posts(request, '2018', 'crash-tool-part-I')
+        return self._on_posts(request, '2019', 'amps-template-engine')
 
     def _on_feed(self, request):
         '''

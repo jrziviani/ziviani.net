@@ -1,0 +1,180 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Amps Template Engine</h2>
+<p><strong>2019 - Feb - 08</strong></p>
+
+<p><a href="https://github.com/jrziviani/amps" target="_blank">Amps</a> is my new toy project. I've been writing it while reading <a href="http://craftinginterpreters.com/" target="_blank">Crafting Interpreters</a>, an excellent book by the way. Amps is a simple text template engine (under development) developed with C++17.</p>
+
+<p>As a side note, I'm impressed with modern C++ expressiveness. Despite of critics that I've read recently, it's becoming a lot easier than old C++. Features like <code class="prettyprint">optional</code> and <code class="prettyprint">variant</code> give us the power to compose different types in order to create type safe complex structures, almost like dynamically type languages do.</p>
+
+<p>For instance:</p>
+
+<pre class="prettyprint linenums"><code class="language-cpp">amps::user_map ht {
+  {"name", "My name"},
+  {"cities", vector<string>{
+         "Sao Paulo",
+         "Paris",
+         "NYC",
+         "London",
+         "Lisbon"}},
+  {"songs", unordered_map<string, string>{
+        {"guns and roses", "patience"},
+        {"aerosmith", "crazy"},
+        {"led zeppelin", "immigrant song"},
+        {"pink floyd", "high hopes"}}},
+};</code></pre>
+
+<p>Isn't it somewhat similar to Python?</p>
+
+<pre class="prettyprint linenums"><code class="language-python">ht = {
+    "name": "My name",
+    "cities": ["Sao Paulo", "Paris"],
+    "songs": {"aerosmith": "crazy"}}</code></pre>
+
+<p>To make Amps more useful I've integrating it to a module for <a href="https://httpd.apache.org/" target="_blank">Apache HTTP server</a>. It basically offers dynamic web pages without a real programming language (like PHP, Ruby, Python) behind it. This could be good for small projects, however I've not measure the performance yet.</p>
+
+<p>In order to build Apache's HTTPd I referred to my <a href="https://ziviani.net/2011/how-to-create-an-apache-module" target="_blank">old post</a>. Then, I wrote a wrapper to connect my C++17 project with an plain C Apache module and nothing else.</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">$ cat amps_wrapper.cpp</code></pre>
+{% raw %}
+<pre class="prettyprint linenums"><code class="language-cpp">#ifdef __cplusplus
+
+#include "engine.h"
+
+#include "httpd.h"
+
+#include &lt;unordered_map&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+#include &lt;cstring&gt;
+
+using std::vector;
+using std::string;
+using std::unordered_map;
+
+unordered_map&lt;string, string&gt; query_to_map(const char *query)
+{
+    unordered_map&lt;string, string&gt; result;
+    if (query == nullptr) {
+        return result;
+    }
+
+    char *tmp = strdup(query);
+    for (char *tok = strtok(tmp, "&amp;"); tok != NULL; tok = strtok(NULL, "&amp;")) {
+        char *value = strchr(tok, '=');
+        if (value == nullptr) {
+            continue;
+        }
+
+        result[string(tok, value - tok)] = string(&amp;value[1]);
+    }
+
+    free(tmp);
+    return result;
+}
+
+static void get_custom_template(request_rec *r, char **result)
+{
+    if (r-&gt;args == 0) {
+        return;
+    }
+
+    amps::error err;
+    amps::engine engine(err);
+    engine.set_template_directory("/tmp");
+
+    amps::user_map ht {{"user_data", query_to_map(r-&gt;args)}};
+
+    // html template is the default, xml returned when content=xml
+    auto content = user.find("content");
+    if (content == user.end() || content-&gt;second == "html") {
+        engine.prepare_template("template.tpl");
+        r-&gt;content_type = "text/html";
+    }
+    else {
+        engine.prepare_template("template_xml.tpl");
+        r-&gt;content_type = "text/xml";
+    }
+    string rendered = engine.render(ht);
+
+    *result = (char*)malloc(sizeof(char) * rendered.size() + 1);
+    strcpy(*result, rendered.c_str());
+    (*result)[rendered.size()] = '\0';
+}
+#endif
+
+extern "C" {
+    #include "amps_wrapper.h"
+
+    void get_template(request_rec *r, char **result)
+    {
+        get_custom_template(r, result);
+    }
+}</code></pre>
+{% endraw %}
+
+<p>The HTTPd module simply calls the <code class="prettyprint">get_template</code> function.</p>
+
+<pre class="prettyprint linenums"><code class="language-c">static int get_handler(request_rec *r)
+{
+    char *result = NULL;
+
+    if (r-&gt;header_only || r-&gt;args == 0) {
+        return OK;
+    }
+
+    get_template(r, &amp;result);
+
+    /* something bad happened */
+    if (result == NULL) {
+        return DECLINED;
+    }
+
+    ap_rputs(result, r);
+
+    free(result);
+
+    return OK;
+}</code></pre>
+
+<p>I compile it all with:</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">$ g++ -std=c++17 -I/home/ziviani/amps/include -I/home/ziviani/httpd/www/include -fPIC amps_wrapper.cpp -o wrapper.o -c -g3
+$ ../bin/apxs  -I/home/ziviani/amps/include -c -i mod_cool_framework.c wrapper.o libamps-static.a</code></pre>
+
+<p>And I finally get this (html template):</p>
+
+{% raw %}
+<p><pre class="prettyprint linenums"><code class="language-html"><img src="/ui/images/amps_html.png" alt="amps html content" class="pull-right" width="400px"/>&lt;html&gt;
+    &lt;head&gt;
+        &lt;meta charset="utf-8"&gt;
+    &lt;head&gt;
+
+    &lt;body&gt;
+        &lt;h2&gt;Welcome {= user_data["name"] =}&lt;h2&gt;
+        &lt;ul&gt;
+            &lt;li&gt;ALL DATA:&lt;ul&gt;
+            {% for key, value in user_data %}
+                {% if value eq "&lt;null&gt; %}
+                    &lt;li&gt;ops, something wrong here&lt;li&gt;
+                {% else %}
+                    &lt;li&gt;{= value =}&lt;li&gt;
+                {% endif %}
+            {% endfor %}
+        &lt;ul&gt;
+    &lt;body&gt;
+&lt;html&gt;</code></pre></p>
+
+<p>and this (xml template):</p>
+
+<p><pre class="prettyprint linenums"><code class="language-xml"><img src="/ui/images/amps_xml.png" alt="amps xml content" class="pull-right" width="400px"/>&lt;xml&gt;
+    &lt;user_name&gt;{= user_data["name"] =}&lt;/user_name&gt;
+&lt;/xml&gt;</code></pre></p>
+{% endraw %}
+
+<p>Amps is at its initial stage but it's been very fun to develop. I intend to continue writing about it in the near future.</p>
+
+<p>Thank you for reading it.</p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
