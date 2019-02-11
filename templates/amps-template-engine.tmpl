@@ -155,7 +155,7 @@ $ ../bin/apxs  -I/home/ziviani/amps/include -c -i mod_cool_framework.c wrapper.o
         &lt;ul&gt;
             &lt;li&gt;ALL DATA:&lt;ul&gt;
             {% for key, value in user_data %}
-                {% if value eq "&lt;null&gt; %}
+                {% if value eq "&lt;null&gt;" %}
                     &lt;li&gt;ops, something wrong here&lt;li&gt;
                 {% else %}
                     &lt;li&gt;{= value =}&lt;li&gt;
