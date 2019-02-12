@@ -5,9 +5,13 @@ html {
 body {
     height: 100%;
     padding-top: 50px;
-    font-family: 'Dosis', sans-serif;
     color: #d8d8d8;
     background-color: #383838;
+    overflow-y: hidden;
+}
+
+p {
+    margin: 1.3em 0;
 }
 
 blockquote {
@@ -21,6 +25,7 @@ blockquote {
 .navbar {
     border-color: #282828;
     background-color: #282828;
+    font-family: 'Dosis', sans-serif;
     font-weight: bold;
     margin-bottom: 0;
 }
@@ -56,16 +61,6 @@ blockquote {
     color: #dc9656;
 }
 
-ul.posts {
-    list-style: none;
-    padding: 0;
-    padding-top: 20px;
-}
-
-ul.posts li {
-    line-height: 1.00;
-    margin-bottom: 2em;
-}
 
 p.title {
     font-family: 'Dosis', sans-serif;
@@ -100,7 +95,7 @@ div.separator {
 
 a.posts {
     text-decoration: none;
-    color: #dc9656;
+    color: #f7ca88;
 }
 
 a.posts:hover {
@@ -132,12 +127,12 @@ h2 {
 }
 
 div#index {
-    background-color: #383838;
+    box-shadow: 10px 0px 15px rgba(0, 0, 0, 0.55);
 }
 
 div#content {
     color: #d8d8d8;
-    padding-top: 20px;
+    font-family: 'Dosis', sans-serif;
 }
 
 div#content h1,h2,h3,h4,h5 {
@@ -146,7 +141,7 @@ div#content h1,h2,h3,h4,h5 {
 }
 
 table#logic {
-    font-family: 'Ubuntu Mono', monospace !important;
+    font-family: 'Anonymous Pro', monospace !important;
     font-size: 1.2em;
 }
 
@@ -166,7 +161,6 @@ p.well {
 .container-fluid.override, .override .col-md-2, .override .col-md-9 {
     height: 100% !important;
 }
-
 
 .override *:before, .override *:after {
     display: none;
@@ -195,19 +189,40 @@ p.well {
     height: 100%;
 }
 
+ul.posts {
+    list-style: none;
+    padding: 0;
+    padding-top: 20px;
+}
+
+ul.posts li {
+    line-height: 1.00;
+    margin-bottom: 2em;
+}
+
 .override .col-md-2 {
     overflow: auto;
-    width: 17%;
+    width: 15%;
     height: 100%;
-    border-right: 1px solid black;
+    margin-right: 5px;
+    scrollbar-color: #f7ca88 #383838;
+    scrollbar-width: thin;
 }
 
 .override .col-md-9 {
     overflow: auto;
-    width: 83%;
+    width: 82%;
     height: 100%;
-    font-family: 'Dosis', sans-serif;
-    font-size: 1.3em !important;
+    font-family: 'Lora', Georgia, serif !important;
+    font-size: 1.5em !important;
+    margin-top: 1em;
+    overflow-y: scroll;
+    scrollbar-color: #f7ca88 #383838;
+    scrollbar-width: thin;
+}
+
+code {
+    font-family: 'Anonymous Pro', monospace !important;
 }
 
 @media (max-width: 1199px) {
@@ -269,6 +284,11 @@ p.well {
     width: 100%;
 }
 
+.scroller {
+  width: 300px;
+  height: 100px;
+}
+
 canvas {
     width: 100%;
     height: 100%;
@@ -283,47 +303,47 @@ canvas {
 
     .str
     {
-        color: #dc9656;
+        color: RGB(127, 75, 26);
     }
     .kwd
     {
-        color: #7cafc2;
+        color: RGB(0, 0, 719);
     }
     .com
     {
-        color: #f7ca88;
+        color: RGB(0, 153, 0);
     }
     .typ
     {
-        color: #f7ca88;
+        color: RGB(0, 0, 719);
     }
     .lit
     {
-        color: #ba8baf;
+        color: RGB(204, 0, 0);
     }
     .pun
     {
-        color: #d8d8d8;
+        color: RGB(51, 51, 51);
     }
     .pln
     {
-        color: #d8d8d8;
+        color: RGB(51, 51, 51);
     }
     .tag
     {
-        color: #86c1b9;
+        color: RGB(69, 135, 127);
     }
     .atn
     {
-        color: #86c1b9;
+        color: RGB(69, 135, 127);
     }
     .atv
     {
-        color: #a1b56c;
+        color: RGB(118, 136, 68);
     }
     .dec
     {
-        color: #ba8baf;
+        color: RGB(128, 77, 116);
     }
     pre.prettyprint
     {
@@ -335,15 +355,17 @@ canvas {
         margin-bottom: 0;
     }
     .prettyprint {
-        background: #404040 !important;
+        background: RGB(217, 217, 217) !important;
+        font-family: 'Anonymous Pro', monospace !important;
+        font-size: 0.7em;
     }
     li.L0, li.L1, li.L2, li.L3, li.L4, li.L5, li.L6, li.L7, li.L8, li.L9
     {
-        color: #787878;
+        color: #959595;
         list-style-type: decimal !important;
     }
     li.L1, li.L3, li.L5, li.L7, li.L9 {
-        background: #393939 !important;
+        background: RGB(242, 242, 242) !important;
     }
     @media print
     {
