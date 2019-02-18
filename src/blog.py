@@ -53,12 +53,17 @@ class Blog(object):
         '''
         self._urls = Map([
             Rule('/', endpoint='index'),
+            Rule('/ptbr', endpoint='ptbr_index'),
             Rule('/feed', endpoint='feed'),
             Rule('/about', endpoint='about'),
+            Rule('/ptbr/about', endpoint='ptbr_about'),
             Rule('/articles', endpoint='articles'),
+            Rule('/ptbr/articles', endpoint='ptbr_articles'),
             Rule('/links', endpoint='hotlinks'),
+            Rule('/ptbr/links', endpoint='ptbr_hotlinks'),
             #Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
+            Rule('/<int:year>/ptbr/<page>', endpoint='ptbr_posts'),
             Rule('/search', endpoint='search'),
         ])
 
@@ -72,6 +77,12 @@ class Blog(object):
         Handles the main page request
         '''
         return self._on_posts(request, '2019', 'amps-template-engine')
+
+    def _on_ptbr_index(self, request):
+        '''
+        Handles the main page request
+        '''
+        return self._on_ptbr_posts(request, '2011', 'como-criar-modulo-apache')
 
     def _on_feed(self, request):
         '''
@@ -98,11 +109,33 @@ class Blog(object):
 
         return Response(response, mimetype='text/html')
 
+    def _on_ptbr_posts(self, request, year, page):
+        '''
+        Handles requests to posts in brazilian portuguese
+        '''
+        page_data = {}
+        page_data['url'] = 'https://ziviani.net/%s/ptbr/%s/' % (year, page)
+        page_data['uid'] = hashlib.md5(page_data['url']).hexdigest()
+
+        response = self._templates.get_template("ptbr/%s.tmpl" % page, data=page_data)
+        if response is None:
+            self._logger.error('template ptbr/%s not found', page)
+            raise NotFound()
+
+        return Response(response, mimetype='text/html')
+
     def _on_articles(self, request):
         '''
         Handles request to articles page
         '''
         response = self._templates.get_template("article.tmpl")
+        return Response(response, mimetype='text/html')
+
+    def _on_ptbr_articles(self, request):
+        '''
+        Handles request to articles page
+        '''
+        response = self._templates.get_template("ptbr/article.tmpl")
         return Response(response, mimetype='text/html')
 
     def _on_hotlinks(self, request):
@@ -112,11 +145,25 @@ class Blog(object):
         response = self._templates.get_template("hotlinks-v1.tmpl")
         return Response(response, mimetype='text/html')
 
+    def _on_ptbr_hotlinks(self, request):
+        '''
+        Handles request to link page
+        '''
+        response = self._templates.get_template("ptbr/hotlinks-v1.tmpl")
+        return Response(response, mimetype='text/html')
+
     def _on_about(self, request):
         '''
         Handles requests to About page
         '''
         response = self._templates.get_template("about.tmpl")
+        return Response(response, mimetype='text/html')
+
+    def _on_ptbr_about(self, request):
+        '''
+        Handles requests to About page
+        '''
+        response = self._templates.get_template("ptbr/about.tmpl")
         return Response(response, mimetype='text/html')
 
     def _on_resume(self, request):

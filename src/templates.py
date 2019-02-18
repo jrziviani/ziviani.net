@@ -64,6 +64,19 @@ class templates(object):
 
         return template.render(context)
 
+    def get_template_ptbr(self, name, **context):
+        '''
+        Returns the rendered content given the template name and the data
+        associate to it
+        '''
+        try:
+            template = self._jinja.get_template(os.path.join('ptbr/', name))
+
+        except TemplateNotFound:
+            return None
+
+        return template.render(context)
+
     def generate_metadata(self):
         '''
         Reads all published posts and create a metadata file
