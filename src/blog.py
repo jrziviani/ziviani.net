@@ -82,7 +82,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_ptbr_posts(request, '2011', 'como-criar-modulo-apache')
+        return self._on_ptbr_posts(request, '2014', 'herancas-em-c')
 
     def _on_feed(self, request):
         '''

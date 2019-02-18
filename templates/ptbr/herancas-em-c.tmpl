@@ -1,0 +1,297 @@
+{% extends "ptbr/base.tmpl" %}
+{% block postbody %}
+<h2>Heranças de classes em linguagem C</h2>
+<p><strong>2014 - Dec - 14</strong></p>
+
+<p>Sabemos que a linguagem C não é orientada a objetos e tals. Mas algumas linguagens que implementam orientação a objetos são escritas em C. Então, vamos ver como elas (ou pelo menos Python) implementa herança de classes em C.</p>
+
+<h3>O modo Python</h3>
+
+<p>Em C, <code class="prettyprint">PyObject</code> é a <em>classe base</em>, ela é a base de todos os objetos Python, sua definição é simplesmente uma estrutura com poucos campos que são herdados por todas as subclasses.</p>
+
+<pre class="prettyprint linenums"><code class="language-c">// http://svn.python.org/view/python/trunk/Include/object.h
+...
+#define _PyObject_HEAD_EXTRA
+#define _PyObject_EXTRA_INIT
+...
+
+#define PyObject_HEAD                   \
+    _PyObject_HEAD_EXTRA                \
+    Py_ssize_t ob_refcnt;               \
+    struct _typeobject *ob_type;
+ 
+#define PyObject_VAR_HEAD \
+    PyObject_HEAD \
+    Py_ssize_t ob_size; /* Number of items in variable part */
+ 
+typedef struct _object {
+    PyObject_HEAD
+} PyObject;</code></pre>
+
+<p>Veja abaixo os filhos de <code class="prettyprint">PyObject</code>: <code class="prettyprint">PyStringObject</code>, <code class="prettyprint">PyFloatObject</code> e <code class="prettyprint">PyListObject</code>. Mas como eu sei que são <strong>realmente</strong> subclasses de <code class="prettyprint">PyObject</code>? Isso vai ficar claro mais para frente, mas note que todas essas estruturas contém exatamente o mesmo campo <code class="prettyprint">PyObject_HEAD</code> ou <code class="prettyprint">PyObject_VAR_HEAD</code> colocados em primeiro.</p>
+
+<pre class="prettyprint linenums"><code class="language-c">// http://svn.python.org/view/python/trunk/Include/stringobject.h
+typedef struct {
+    PyObject_VAR_HEAD
+    long ob_shash;
+    int ob_sstate;
+    char ob_sval[1];
+} PyStringObject;
+ 
+// http://svn.python.org/view/python/trunk/Include/floatobject.h
+typedef struct {
+    PyObject_HEAD
+    double ob_fval;
+} PyFloatObject;
+ 
+// http://svn.python.org/view/python/trunk/Include/listobject.h
+typedef struct {
+    PyObject_VAR_HEAD
+    PyObject **ob_item;
+    Py_ssize_t allocated;
+} PyListObject;</code></pre>
+
+<p>Uma simples ilustração do diagrama de classes:</p>
+
+<p><img src="/ui/images/pyobject_diagram.png" alt="PyObject object diagram"/></p>
+
+<h3>Casting</h3>
+
+<p>Na verdade é aqui que a <strong>mágica</strong> realmente acontece. Olhe o código abaixo e concentre-se apenas em <code class="prettyprint">return ((PyListObject*)op)-&gt;ob_item[i];</code>.</p>
+
+<p>Esse <a href="http://en.cppreference.com/w/c/language/cast" target="_blank">type casting</a> é a maneira do programador informar ao compilador que ele quer que um tipo de dado seja convertido arbitrariamente em outro tipo, de um jeito que o compilador deixará de fazer qualquer verificação de segurança sobre aquela conversão.</p>
+
+<pre class="prettyprint linenums"><code class="language-c">// http://svn.python.org/view/python/trunk/Objects/listobject.c?view=markup
+PyObject *PyList_GetItem(PyObject *op, Py_ssize_t i)
+{
+    if (!PyList_Check(op)) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
+    if (i &lt; 0 || i &gt;= Py_SIZE(op)) {
+        if (indexerr == NULL) {
+            indexerr = PyString_FromString("list index out of range");
+            if (indexerr == NULL)
+                return NULL;
+        }
+        PyErr_SetObject(PyExc_IndexError, indexerr);
+        return NULL;
+    }
+    return ((PyListObject *)op)-&gt;ob_item[i];
+}</code></pre>
+
+<p>Então, <code class="prettyprint">((PyListObject*)op)</code> faz uma conversão do ponteiro <strong>op</strong> (que é <code class="prettyprint">PyObject*</code>) para uma estrutura <code class="prettyprint">PyListObject*</code> (note o <code class="prettyprint">PyList_Check(op)</code> como <em>sanity check</em>) e acessa o campo <code class="prettyprint">ob_item</code>. Se você reparar, verá que <code class="prettyprint">PyObject</code> não tem esse <code class="prettyprint">ob_item</code> mas <code class="prettyprint">PyListObject</code> tem. Isso deve lhe dar o senso de responsabilidade que o programador <strong>deve ter</strong> ao fazer tal conversão.</p>
+
+<p>Finalmente, seja lá o que estiver armazenado na posição <strong>i</strong>, este será retornado para quem chamou a função. E será retornado como um <code class="prettyprint">PyObject</code>, que é uma verdadeira <strong>interface</strong> para qualquer tipo Python.</p>
+
+<p>Aí vem a pergunta: sendo <code class="prettyprint">PyObject</code> e <code class="prettyprint">PyList</code> estruturas diferentes, como eu posso converter dados entre elas sem quebrar meu programa?</p>
+
+<p>Porque isso é um comportamento definido pelo padrão <a href="http://flash-gordon.me.uk/ansi.c.txt" target="_blank">C99</a>.</p>
+
+<p><blockquote cite="http://flash-gordon.me.uk/ansi.c.txt">Within a structure object, the non-bit-field members and the units in which bit-fields reside have addresses that increase in the order in which they are declared. A pointer to a structure object, suitably cast, points to its initial member (or if that member is a bit-field, then to the unit in which it resides), and vice versa. There may therefore be unnamed holes within a structure object, but not at its beginning, as necessary to achieve the appropriate alignment.</blockquote></p>
+
+<p>De maneira simplificada, isso quer dizer que UM PONTEIRO PARA <strong>QUALQUER</strong> ESTRUTURA SEMPRE APONTA PARA SEU PRIMEIRO ELEMENTO, ou seja, você pode fazer <em>cast</em> de ponteiros para quaisquer estruturas <strong>desde que</strong> o primeiro campo seja exatamente o mesmo. Legal, né? Por isso todas as estruturas começam com o mesmo cabeçalho.</p>
+
+<h3>Quero ver código</h3>
+
+<p>Aqui um simples código C, vamos ver o código gerado pelo GCC como prova de conceito.</p>
+
+<pre class="prettyprint linenums"><code class="language-c">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+
+#define HEAD int type;
+
+enum { INTEGER, FLOAT };
+
+typedef struct
+{
+    HEAD
+} Number;
+
+typedef struct
+{
+    HEAD
+    int val;
+} Integer;
+
+typedef struct
+{
+    HEAD
+    float val;
+} Float;
+
+int main()
+{
+    Integer i;
+    i.type = INTEGER;
+    i.val  = 42;
+
+    Float f;
+    f.type = FLOAT;
+    f.val  = 36.85;
+
+    Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+
+    numbers[0] = (Number*)&i;
+    numbers[1] = (Number*)&f;
+
+    // for debugging purpose ↓
+    int y = ((Integer*)numbers[0])-&gt;val;
+    
+    int x = numbers[0]-&gttype;
+    x = numbers[1]-&gttype;
+    // for debugging purpose ↑
+
+    for (unsigned int count = 0; count &lt; 2; ++count)
+    {
+        switch (numbers[count]-&gt;type)
+        {
+            case INTEGER:
+                printf("%d - Integer: %d\n", 
+                        count, 
+                        ((Integer*)numbers[count])-&gt;val);
+                break;
+
+            case FLOAT:
+                printf("%d - Float: %.2f\n", 
+                        count, 
+                        ((Float*)numbers[count])-&gt;val);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    free(numbers);
+
+    return 0;
+}
+
+Compile:
+gcc -g -std=c99 code.c -o codebin
+
+Execute:
+./codebin
+0 - Integer: 42
+1 - Float: 36.85</code></pre>
+
+<p>Agora, as entranhas.</p>
+
+<pre class="prettyprint"><code class="language-asm">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+
+0x4005e3 &lt;main+38&gt;      mov    $0x10,%edi
+0x4005e8 &lt;main+43&gt;      callq  0x4004c0 &lt;malloc@plt&gt;
+0x4005ed &lt;main+48&gt;      mov    %rax,-0x8(%rbp)
+
+(gdb) info registers rax
+rax            0x602010 6299664
+
+(gdb) x/wx $rbp-0x8
+0x7fffffffe3c8: 0x00602010
+
+(gdb) x/wx 0x00602010
+0x602010:       0x00000000</code></pre>
+
+<p>Malloc lê o <em>size</em> do registrador <code class="prettyprint">EDI</code> e armazena o endereço em <code class="prettyprint">RAX</code>. Este endereço é copiado para <code class="prettyprint">RBP-0x8</code> - que é o lugar onde nossa variável <code class="prettyprint">numbers</code> está localizada na pilha.</p>
+<p><img src="/ui/images/c_poly_malloc.png" alt="malloc instructions" />
+
+<pre class="prettyprint"><code class="language-asm">numbers[0] = (Number*)&i;
+
+0x4005f1 &lt;main+52&gt;      mov    -0x8(%rbp),%rax
+0x4005f5 &lt;main+56&gt;      lea    -0x20(%rbp),%rdx
+0x4005f9 &lt;main+60&gt;      mov    %rdx,(%rax)
+(gdb) x/wx $rbp-0x20
+0x7fffffffe3b0: 0x00000000
+
+(gdb) x/2wx 0x00602010
+0x602010:       0xffffe3b0      0x00007fff</code></pre>
+
+<p><code class="prettyprint">RBP-0x8</code> é copiado pra <code class="prettyprint">RAX</code>, o endereço de <code class="prettyprint">RBP-0x20</code> (variável 'i') é copiado em <code class="prettyprint">RDX</code> e, finalmente, o conteúdo de <code class="prettyprint">RDX</code> é armazenado no espaço de <strong>heap</strong> do programa. A instrução <code class="prettyprint">mov %rdx,(%rax)</code> copia o conteúdo de RDX para o lugar onde o conteúdo de RAX está apontando, que aqui é a memória alocada dinamicamente.</p>
+
+<p><img src="/ui/images/c_poly_cast1.png" alt="assembly instructions" /></p>
+
+<p class="well"><strong>Importante</strong>: o endereço de uma variável local, na pilha, foi colocado na heap. Felizmente, neste caso, estou executando tudo na função <code class="prettyprint">main()</code>, mas seria danoso se fosse uma outra função retornando um endereço de uma variável local. Leia mais sobre <a href="https://en.wikipedia.org/wiki/Call_stack#Structure" target="_blank">stack frames</a>.</p>
+
+<pre class="prettyprint"><code class="language-asm">int y = ((Integer*)numbers[0])-&gt;val;
+
+0x40060b &lt;main+78&gt;      mov    -0x8(%rbp),%rax
+(gdb) info registers rax
+rax            0x602010 6299664
+
+0x40060f &lt;main+82&gt;      mov    (%rax),%rax
+(gdb) info registers rax
+rax            0x7fffffffe3b0   140737488348080
+
+(gdb) x/wx 0x7fffffffe3b0+4
+0x7fffffffe3b4: 0x0000002a ==&gt; (42 int)
+
+0x400612 &lt;main+85&gt;      mov    0x4(%rax),%eax
+(gdb) info registers eax
+eax            0x2a     42
+
+0x400615 &lt;main+88&gt;      mov    %eax,-0x28(%rbp)
+(gdb) x/wx $rbp-0x28
+0x7fffffffe3a8: 0x0000002a</code></pre>
+
+<p>Nada novo aqui, mas veja o cast para <code class="prettyprint">Integer</code> e como o conseguimos acesso ao campo que apenas a estrutura <code class="prettyprint">Integer</code> tem.
+
+<p><img src="/ui/images/c_poly_cast2.png" alt="assembly instructions" /></p>
+
+<pre class="prettyprint"><code class="language-asm">int x = numbers[0]-&gt;type;
+
+0x400618 &lt;main+91&gt;      mov    -0x8(%rbp),%rax
+0x40061c &lt;main+95&gt;      mov    (%rax),%rax
+0x40061f &lt;main+98&gt;      mov    (%rax),%eax
+(gdb) info registers rax
+rax            0x0      0
+
+0x400621 &lt;main+100&gt;     mov    %eax,-0x24(%rbp)
+(gdb) x/wx $rbp-0x24
+0x7fffffffe3ac: 0x00000000</code></pre>
+
+<p><img src="/ui/images/c_poly_cast3.png" alt="assembly instructions" /></p>
+
+<pre class="prettyprint"><code class="language-asm">x = numbers[1]-&gt;type;
+
+0x400624 &lt;main+103&gt;     mov    -0x8(%rbp),%rax
+(gdb) info registers rax
+rax            0x602010 6299664
+
+0x400628 &lt;main+107&gt;     add    $0x8,%rax
+(gdb) info registers rax
+rax            0x602018 6299672
+
+0x40062c &lt;main+111&gt;     mov    (%rax),%rax
+(gdb) x/2wx 0x602018
+0x602018:       0xffffe3c0      0x00007fff
+
+(gdb) x/wx 0x7fffffffe3c0
+0x7fffffffe3c0: 0x00000001
+
+0x40062f &lt;main+114&gt;     mov    (%rax),%eax
+(gdb) info registers rax
+rax            0x7fffffffe3c0   140737488348096
+
+(gdb) info registers eax
+eax            0x1      1
+
+0x400631 &lt;main+116&gt;     mov    %eax,-0x24(%rbp)
+(gdb) x/wx $rbp-0x24
+0x7fffffffe3ac: 0x00000001</code></pre>
+
+<p><img src="/ui/images/c_poly_cast4.png" alt="assembly instructions" /></p>
+
+<p>Espero que tenham curtido, qualquer dúvida basta comentar.</p>
+
+<h3><a name="references"></a>Referências</h3>
+
+<ul>
+    <li><a target="_blank" href="https://en.wikipedia.org/wiki/Call_stack#Structure">https://en.wikipedia.org/wiki/Call_stack#Structure</a></li>
+    <li><a target="_blank" href="http://flash-gordon.me.uk/ansi.c.txt">http://flash-gordon.me.uk/ansi.c.txt</a></li>
+    <li><a target="_blank" href="http://svn.python.org/view/">http://svn.python.org/view/</a></li>
+</ul>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
