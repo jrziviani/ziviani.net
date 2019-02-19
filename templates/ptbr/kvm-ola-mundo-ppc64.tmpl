@@ -1,0 +1,146 @@
+{% extends "ptbr/base.tmpl" %}
+{% block postbody %}
+<h2>Usando a API KVM - versão PPC64</h2>
+<p>Baseado no excelente artigo da <a href="https://lwn.net" target="_blank">LWN.net</a> chamado <a href="https://lwn.net/Articles/658511" target="_blank">Usando a API KVM (em Inglês)</a>, escrevi esta versão para ppc64.</p>
+
+<h3>Código Guest</h3>
+<p>O simples código abaixo é para ser executado em <em>bare-metal</em>, isso porque não temos um sistema operacional e nem mesmo um <strong>firmware</strong> <em>(BIOS)</em> para nos apoiar.</p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat code.s</code></pre>
+<pre class="prettyprint linenums"><code class="language-assembly">li 16,8 # armazena o número 8 no registrador de uso geral R16
+li 17,4 # armazena o número 4 no registrado R17
+mullw 18,16,17 # armazena em R18 o resultado de R16 x R17</code></pre>
+
+<p>Agora, as diretivas .ld para construir o binário.</p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat code.ld</code></pre>
+<pre class="prettyprint linenums"><code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpc)
+SECTIONS
+{
+    . = 0x100;
+    .text : { *(.text) }
+}</code></pre>
+
+<pre class="prettyprint"><code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian
+$ ld -T code.ld code.o -o code.bin
+$ objdump -d code.bin
+code.bin: file format elf64-powerpc
+
+Disassembly of section .text:
+
+0000000000000100 <.text>:
+ 100:	3a 00 00 08 	li      r16,8
+ 104:	3a 20 00 04 	li      r17,4
+ 108:	7e 50 89 d6 	mullw   r18,r16,r17</code></pre>
+
+<p>Depois de uma interrupção de <em>System Reset</em>, PowerPC começa a execução no endereço <code class="prettyprint">0x100</code>, por isso o programa foi <em>linkeditado</em> para carregar neste endereço.</p>
+
+<h3>Usando a API KVM</h3>
+
+<p>Detalhes sobre a API já está bem coberta pelo artigo <a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a>. Minha ideia aqui é trazer aquele conhecimento para Power. Então, a primeira coisa e ajustar os valores iniciais dos registradores.</p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat vm.c</code></pre>
+<pre class="prettyprint linenums"><code class="line-numbers language-c">[snip]
+int setup_registers(struct virtual_machine *vm)
+{
+    if (ioctl(vm-&gt;vcpufd, KVM_GET_SREGS, &amp;vm-&gt;sregs) == -1) {
+        return 10;
+    }
+    vm-&gt;sregs.pvr = 0x004d0200;
+    vm-&gt;sregs.u.s.sdr1 = 0x3fff80400004;
+
+    if (ioctl(vm-&gt;vcpufd, KVM_SET_SREGS, &amp;vm-&gt;sregs) == -1) {
+        return 11;
+    }
+
+    struct kvm_regs regs = {
+        .pc = 0x100,
+        .msr = 0x8000000000000000ULL,
+    };
+
+    if (ioctl(vm-&gt;vcpufd, KVM_SET_REGS, &amp;regs) == -1) {
+        return 12;
+    }
+
+    return 0;
+}
+[snip]</code></pre>
+
+<p>O código fonte pode ser encontrado <a href="https://github.com/jrziviani/kvm-lab/blob/master/vm.c" target="_blank">neste meu Github</a>.</p>
+
+<p>
+<ul>
+    <li><strong>PVR - Processor Version Register</strong>: o valor <code class="prettyprint">0x4d0200</code> inclui a versão/revisão para a Power8 usada.</li>
+    <li><strong>SDR1 - Storage Description Register 1</strong>: define o <em>high-order</em> bit para o endereçamento físico e o tamanho da tabela de páginas. O valor aqui é o mesmo que o QEMU usa. <em><strong>NOTA</strong>: este registrador não existe mais, entradas das tabelas de páginas agora são encontradas nas entradas das tabelas de processo (Process Table Entries).</em></li>
+    <li><strong>MSR - Machine State Register</strong>: Primeiro bit 1 significa que o processador está operando em modo 64-bits.</li>
+    <li><strong>PC - Program Counter</strong>: Isso não é um registrador PPC. Em Power, o endereço da próxima instrução é basicamente uma chamada à instrução <code class="prettyprint">bcl</code> <em>(branch condition and link)</em> que coloca o endereço efetivo seguido do endereço do <em>branch</em> no registrador LR <em>(Link Register)</em>. Aqui ajustado para o endereço <code class="prettyprint">0x100</code> porque Power irá começar a execução neste endereço, tanto que a linkedição foi feita justamente para esse endereço.</li>
+</ul>
+</p>
+
+<p>Depois de compilar e rodar o código, o resultado deverá ser este:</p>
+
+<pre class="prettyprint"><code class="language-bash">$ gcc -O3 vm.c -o vm
+$ ./vm
+KVM version 12
+VM created successfuly
+Registers set successfuly
+R 0: 0	R 1: 0	R 2: 0	R 3: 0	
+R 4: 0	R 5: 0	R 6: 0	R 7: 0	
+R 8: 0	R 9: 0	R10: 0	R11: 0	
+R12: 0	R13: 0	R14: 0	R15: 0	
+R16: 0	R17: 0	R18: 0	R19: 0 &lt;====
+R20: 0	R21: 0	R22: 0	R23: 0	
+R24: 0	R25: 0	R26: 0	R27: 0	
+R28: 0	R29: 0	R30: 0	R31: 0	
+-------------------
+R 0: 0	R 1: 0	R 2: 0	R 3: 0	
+R 4: 0	R 5: 0	R 6: 0	R 7: 0	
+R 8: 0	R 9: 0	R10: 0	R11: 0	
+R12: 0	R13: 0	R14: 0	R15: 0
+R16: 8	R17: 4	R18: 32	R19: 0 &lt;====
+R20: 0	R21: 0	R22: 0	R23: 0	
+R24: 0	R25: 0	R26: 0	R27: 0	
+R28: 0	R29: 0	R30: 0	R31: 0	
+-------------------
+exit reason: 0x0</code></pre>
+
+<h3>Little Endian</h3>
+
+<p>Power é um arquitetura conhecida como bi-endian, ou seja, executa tanto em modo little-endian quanto big-endian. Vamos ver então como seria o mesmo projeto em little-endian.</p>
+
+
+<pre class="prettyprint"><code class="language-bash">$ cat code.ld</code></pre>
+<pre class="prettyprint linenums"><code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpcle)
+SECTIONS
+{
+    . = 0x100;
+    .text : { *(.text) }
+}</code></pre>
+<pre class="prettyprint"><code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian
+$ ld -T code.ld code.o -o code.bin</code></pre>
+
+<p>Basicamente só mudou o parâmetro <code class="prettyprint">-mlittle</code>.</p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat vm.c</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">int setup_registers(struct virtual_machine *vm)
+[snip]
+    struct kvm_regs regs = {
+        .pc = 0x100,
+        .msr = 0x8000000000000001ULL,
+    };
+[snip]</code></pre>
+
+<p>O último bit ligado no MSR configura Power para trabalhar em modo little-endian. Basta recompilar e pronto.</p>
+
+<h3>Referências</h3>
+
+<p><ul>
+    <li><a href="https://github.com/jrziviani/kvm-lab/blob/master/vm.c" target="_blank">My sample source code</a></li>
+    <li><a href="https://lwn.net/Articles/658511" target="_blank">Using the KVM API</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">64-Bit ELF V2 ABI Specification: Power Architecture</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=linux-on-power-architecture-platform-reference" target="_blank">Linux on Power Architecture Platform Reference</a></li>
+</ul></p>
+
+{% include "disqus.tmpl" %}
+{% endblock %}

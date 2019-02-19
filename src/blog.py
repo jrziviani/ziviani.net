@@ -82,7 +82,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_ptbr_posts(request, '2014', 'herancas-em-c')
+        return self._on_ptbr_posts(request, '2017', 'kvm-ola-mundo-ppc64')
 
     def _on_feed(self, request):
         '''

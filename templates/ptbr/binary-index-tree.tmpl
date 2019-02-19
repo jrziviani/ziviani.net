@@ -1,0 +1,263 @@
+{% extends "ptbr/base.tmpl"  %}
+{% block postbody %}
+<h2>Binary Index Tree</h2>
+
+<p>Segundo a <a href="https://en.wikipedia.org/wiki/Fenwick_tree" target="_blank">wikipedia</a>, uma árvore Fenwick, ou binary index tree, é uma estrutura de dados para cálculo e atualização de somas de prefixos numa tabela de números. Esta estrutura foi proposta por Peter Fenwick em 1994 para melhorar a eficiência de algoritmos de compressão.</p>
+
+<p>Levei um tempo pra entender como a árvore funciona mas a verdade é que ela é mais simples do que parece.</p>
+
+<p>Imagine o array:</p>
+
+<p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>index</th>
+            <th>0</th>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+            <th>6</th>
+            <th>7</th>
+            <th>8</th>
+            <th>9</th>
+            <th>10</th>
+            <th>11</th>
+            <th>12</th>
+            <th>13</th>
+            <th>14</th>
+            <th>15</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cumul.freq.</td>
+            <td>0</td>
+            <td>13</td>
+            <td>21</td>
+            <td>16</td>
+            <td>45</td>
+            <td>18</td>
+            <td>67</td>
+            <td>34</td>
+            <td>184</td>
+            <td>39</td>
+            <td>74</td>
+            <td>29</td>
+            <td>108</td>
+            <td>47</td>
+            <td>95</td>
+            <td>3</td>
+        </tr>
+    </tbody>
+</table>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>index</th>
+            <th>16</th>
+            <th>17</th>
+            <th>18</th>
+            <th>19</th>
+            <th>20</th>
+            <th>21</th>
+            <th>22</th>
+            <th>23</th>
+            <th>24</th>
+            <th>25</th>
+            <th>26</th>
+            <th>27</th>
+            <th>28</th>
+            <th>29</th>
+            <th>30</th>
+            <th>31</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cumul.freq.</td>
+            <td>440</td>
+            <td>48</td>
+            <td>87</td>
+            <td>1</td>
+            <td>131</td>
+            <td>37</td>
+            <td>71</td>
+            <td>25</td>
+            <td>235</td>
+            <td>36</td>
+            <td>67</td>
+            <td>9</td>
+            <td>106</td>
+            <td>33</td>
+            <td>48</td>
+            <td>17</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+
+<p>Imagine que eu queira adicionar <strong>50</strong> ao item na posição <strong>17</strong>, para isso vou usar este código:</p>
+
+<pre class="prettyprint linenums"><code class="language-c++">void update(auto &amp;v, size_t index, int value)
+{
+    while (index &lt; v.size()) {
+        v[index] += value;
+        index += (index &amp; -index);
+    }
+}
+
+// caller
+update(array, 17, 50);</code></pre>
+
+<p><img src="/ui/images/bit_debug.png" alt="binary index tree update value"/></p>
+
+<p><br/><br/></p>
+
+<p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>index</th>
+            <th>0</th>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+            <th>6</th>
+            <th>7</th>
+            <th>8</th>
+            <th>9</th>
+            <th>10</th>
+            <th>11</th>
+            <th>12</th>
+            <th>13</th>
+            <th>14</th>
+            <th>15</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cumul.freq.</td>
+            <td>0</td>
+            <td>13</td>
+            <td>21</td>
+            <td>16</td>
+            <td>45</td>
+            <td>18</td>
+            <td>67</td>
+            <td>34</td>
+            <td>184</td>
+            <td>39</td>
+            <td>74</td>
+            <td>29</td>
+            <td>108</td>
+            <td>47</td>
+            <td>95</td>
+            <td>3</td>
+        </tr>
+    </tbody>
+</table>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>index</th>
+            <th>16</th>
+            <th>17</th>
+            <th>18</th>
+            <th>19</th>
+            <th>20</th>
+            <th>21</th>
+            <th>22</th>
+            <th>23</th>
+            <th>24</th>
+            <th>25</th>
+            <th>26</th>
+            <th>27</th>
+            <th>28</th>
+            <th>29</th>
+            <th>30</th>
+            <th>31</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cumul.freq.</td>
+            <td>440</td>
+            <td><strong class="red">98</strong></td>
+            <td><strong class="red">137</strong></td>
+            <td>1</td>
+            <td><strong class="red">181</strong></td>
+            <td>37</td>
+            <td>71</td>
+            <td>25</td>
+            <td><strong class="red">285</strong></td>
+            <td>36</td>
+            <td>67</td>
+            <td>9</td>
+            <td>106</td>
+            <td>33</td>
+            <td>48</td>
+            <td>17</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+
+<p>Vamos ler a soma das frequências:</p>
+
+<pre class="prettyprint linenums"><code class="language-c++">int read(const auto &amp;v, size_t index)
+{
+    if (index &gt;= v.size())
+        throw exception();
+
+    int s = 0;
+    while (index) {
+        s += v[index];
+        index -= (index &amp; -index);
+    }
+    return s;
+}
+
+// caller
+read(array, 31);</code></pre>
+
+<pre class="prettyprint"><code class="language-bash">$ ./bit
+896</code></pre>
+
+<p><img src="/ui/images/bit_debug2.png" alt="binary index tree read value"/></p>
+
+<p><br/><br/></p>
+
+<h3>Isolando o bit mais à direita</h3>
+
+<p>O código <code class="prettyprint">index &amp; -index</code> é bastante interessante porque ele explora o <a href="https://en.wikipedia.org/wiki/Two%27s_complement" target="_blank">complemento de dois</a>, implementado pelos processadores mais conhecidos, para isolar o bit mais à direita. Isso porque a versão negativa de um número positivo é o resultado da inversão de todos os bits somado à 1.</p>
+
+<p>Por exemplo, <strong>50 (decimal)</strong> é <strong>110010 binário</strong>, <strong>-50 (decimal)</strong> é <strong>001101 + 1 = 001110</strong>. Então, se você executar a operação <strong>AND</strong> entre o positivo e o negativo você terá apenas o 1 mais à direita.</p>
+
+<p>Assim, imprimindo <code class="prettyprint">i &amp; -i</code> você notará o seguinte padrão:</p>
+
+<pre class="prettyprint"><code class="language-python">for i in range(33):
+    print i &amp; -i,
+
+0 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 16 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 32</code></pre>
+
+<p>Pensando nesse padrão, <a href="https://en.wikipedia.org/wiki/Fenwick_tree" target="_blank">Fenwick</a> conseguiu enxergar um caminho para acessar a estrutura de forma logarítmica. Sensacional.</p>
+
+<p>Há muito mais sobre o assunto sobre como ou quando usar binary index trees mas está fora do que eu gostaria de escrever aqui, que é o racional sobre o código. Para mais recomendo a <a target="_blank" href="http://community.topcoder.com/tc?module=Static&d1=tutorials&d2=binaryIndexedTrees">TopCoder</a>.</p>
+
+<h3>Referências</h3>
+
+<ul>
+    <li><a target="_blank" href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.8917">http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.8917</a></li>
+    <li><a target="_blank" href="http://community.topcoder.com/tc?module=Static&d1=tutorials&d2=binaryIndexedTrees">http://community.topcoder.com/tc?module=Static&d1=tutorials&d2=binaryIndexedTrees</a></li>
+    <li><a target="_blank" href="https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a">https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a</a></li>
+    <li><a target="_blank" href="http://www.hackersdelight.org">http://www.hackersdelight.org</a>
+</ul>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
