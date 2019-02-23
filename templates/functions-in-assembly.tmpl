@@ -58,133 +58,42 @@ $ ./function
 
 <div id="canvaswrapper"><canvas id="canvas"></canvas></div>
 
-<p>Hope you like it. Thank you! :-)</p>
+<p>Hope you like it.</p>
+
+<script type="text/javascript" src="/ui/js/vm.js"></script>
+<script type="text/javascript" src="/ui/js/vm_iface.js"></script>
 
 <script>
-    'use strict';
-
-    function dbggr()
-    {
-        function frame(frame_url)
-        {
-            this.image = new Image();
-            this.image.src = frame_url;
+    var vm = undefined;
+    window.addEventListener('keydown', (event) => {
+        if (typeof vm != 'undefined' && event.key == 'n' ||
+            event.key == 'N') {
+            vm.run_step();
+            window.requestAnimationFrame(
+                function() {
+                    vm.draw();
+                }
+            );
         }
-
-        this._push_back = function(url, index)
-        {
-        }
-
-        this.init = function(w)
-        {
-            this._size = 74;
-            this._frames = new Array(this._size);
-            this._current = 0;
-            this.set_width(w, 713);
-
-            for (var i = 0; i < this._size; i++) {
-                this._frames[i] = new frame("/ui/images/frames/function0_" + i + ".svg");
-            }
-
-            this._frames[0].image.onload = function() {
-                window.requestAnimationFrame(draw);
-            }
-        }
-
-        this.go_next = function()
-        {
-            if (this._current + 1 >= this._size) {
-                return;
-            }
-
-            this._current++;
-        }
-
-        this.go_back = function()
-        {
-            if (this._current <= 0) {
-                return;
-            }
-
-            this._current--;
-        }
-
-        this.get_image = function()
-        {
-            return this._frames[this._current].image;
-        }
-
-        this.set_width = function(width)
-        {
-            if (width >= 1199) {
-                this._w = 907;
-                this._h = 713;
-            }
-            else if (width >= 800 && width < 1199) {
-                this._w = 707;
-                this._h = 526;
-            }
-            else if (width >= 420 && width < 800) {
-                this._w = 407;
-                this._h = 303;
-            }
-            else {
-                this._w = 300;
-                this._h = 223;
-            }
-        }
-
-        this.get_w = function()
-        {
-            return this._w;
-        }
-
-        this.get_h = function()
-        {
-            return this._h;
-        }
-    }
-
-    function draw()
-    {
-        var canvas = document.getElementById('canvas');
-        var context = canvas.getContext('2d');
-
-        context.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (dbg === undefined) {
-            return;
-        }
-
-        context.drawImage(dbg.get_image(), 0, 0, dbg.get_w(), dbg.get_h());
-    }
-
-    window.addEventListener('resize', (event) => {
-        var canvas = document.getElementById('canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        if (dbg === undefined) {
-            return;
-        }
-
-        dbg.set_width(canvas.width);
-        window.requestAnimationFrame(draw);
     }, false);
 
-    document.addEventListener('keydown', (event) => {
-        if (dbg === undefined) {
-            return;
-        }
+    function main()
+    {
+        var canvas = document.getElementById('canvas');
+        canvas.width = 1024;
+        canvas.height = 680;
 
-        if (event.key == "n" || event.key == "N") {
-            dbg.go_next();
-        }
-        else if (event.key == "p" || event.key == "P") {
-            dbg.go_back();
-        }
-        window.requestAnimationFrame(draw);
-    }, false);
+        vm = new vm_gui(canvas, 1024, 680);
+        window.requestAnimationFrame(
+            function() {
+                vm.draw();
+            }
+        );
+    }
+
+    window.onload = function(event) {
+        main();
+    }
 
     var dx = null;
     document.addEventListener('touchstart', (event) => {
@@ -201,32 +110,15 @@ $ ./function
         }
 
         if (event.touches[0].clientX - dx > 0) {
-            dbg.go_next();
-        }
-        else {
-            dbg.go_back();
+            vm.run_step();
         }
         dx = null;
-        window.requestAnimationFrame(draw);
+        window.requestAnimationFrame(
+            function() {
+                vm.draw();
+            }
+        );
     }, false);
-
-    var dbg;
-    function main()
-    {
-        var canvas = document.getElementById('canvas');
-
-        dbg = new dbggr();
-        canvas.width = window.innerWidth;
-        canvas.height = 713;
-
-        dbg.init(canvas.width);
-        window.requestAnimationFrame(draw);
-    }
-
-    window.onload = function(event) { 
-        main();
-    }
-
 </script>
 
 {% include "disqus.tmpl" %}
