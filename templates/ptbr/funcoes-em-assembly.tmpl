@@ -1,0 +1,138 @@
+{% extends "base.tmpl" %}
+{% block postbody %}
+<h2>Escrevendo funções em assembly - Parte I</h2>
+
+<p>Não é incomum a minha necessidade de escrever funções em assembly. Na maioria das vezes basta embutir assembly inline no código C e pronto. Porém, algumas vezes, quando preciso de algumas linhas a mais, fica mais fácil escrever o código diretamente em assembly e ligar isso com C.</p>
+
+<p>Para isso, gosto de usar uma macro que "coloca" meu código assembly numa função "compatível" com C.</p>
+
+<h3>Como assim?</h3>
+
+<p>Uma função é uma sequência de instruções logicamente agrupadas para executar uma tarefa qualquer. Ela tem um papel importante na programação porque evita repetição de código. Porém, funções são abstrações implementadas pela linguagem de programação. Isso quer dizer que na linguagem de máquina funções se tornam um punhado de <em>jumps</em> e <em>labels</em> empilhando, desempilhando, lendo e gravando dados de registradores. Por exemplo:</p>
+
+<pre class="prettyprint linenums"><code class="language-bash">cat function.S</code>
+<code>.align 2
+.type my_function,@function;
+.globl my_function;
+my_function:
+    blr</code></pre>
+
+<p><ul>
+    <li><strong>.align 2</strong> - Esta seção será alinhada em 2-bytes.</li>
+    <li><strong>.type my_function,@function</strong> - meta-dado, não requerido mas importante para debugging</li>
+    <li><strong>.globl my_funcion</strong> - my_function se torna "visível" por outras unidades.</li>
+    <li><strong>my_function:</strong> - label</li>
+    <li><strong>blr</strong> - instrução PowerPC que cria um <em>branch</em> incondicional para o endereço armazenado no registrador LR (Link Register).</li>
+</ul></p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat function.c</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">#include &lt;stdio.h&gt;
+
+/*
+ * Aqui eu informo ao compilador C que my_function requer um int e retorna outro int e que,
+ * embora esta função não esteja implementada aqui, eu garanto que até o momento de ligação
+ * dos objetos, esta função será provida.
+ */
+extern int my_function(int param);
+
+int main(void)
+{
+    int i = my_function(5);
+    printf("%d\n", i);
+    return 0;
+}</code></pre>
+<pre class="prettyprint"><code class="language-bash">$ gcc -g3 function.S function.c -o function
+$ ./function
+5</code></pre>
+
+<p>Não é legal? Acabei de escrever uma "função" em assembly que não faz nada além de retornar o mesmo número que passei como de parâmetro - mesmo sem ter pedido para ela fazer isso. Magica? Não! e vamos ver o porquê.</p>
+
+<h3>Application Binary Interface - ABI</h3>
+
+<p>Infelizmente a coisa não é tããão simples assim. Na verdade, para escrever uma função "compatível" com C precisamos seguir algumas regras, as mesmas que o compilador segue guando está convertendo o seu código em código de máquina.</p>
+
+<p>Essas regras são definidas pela <strong>ABI</strong>, ou <a href="https://en.wikipedia.org/wiki/Application_binary_interface" target="_blank">Application Binary Interface</a>, que depende exclusivamente da arquitetura da máquina e do ambiente operacional que você trabalha.</p>
+
+<p>Neste caso, a ABI é quem define como uma função é criada naquele ambiente: se os parâmetros são passados pela pilha ou por registradores, onde armazenar as variáveis locais, valores de retorno, etc. Isso garante uma organização binária para que programas escritos em diferentes linguagem de programação interajam (bibliotecas) entre si sem problemas.</p>
+
+<p>Abaixo há um pequeno programa escrito em um assembly para uma máquina imaginária. Supondo que a ABI especificasse que parâmetros são passados por pilha e valores de retorno são gravados em registradores, seu compilador C, para o código abaixo,</p>
+
+<pre class="prettyprint linenums"><code class="language-c">int x = mult(5, 3);
+printf("%d", x);
+int y = mult(x, 2);
+printf("%d", y);</code></pre>
+
+<p>geraria o seguinte código assembly:</p>
+
+<p><strong>Nota:</strong> este código é interativo, use 'n' para navegar para as próximas instruções.</p>
+<p><strong>Nota II:</strong> O código roda de verdade numa mini maquina virtual que escrevi pra isso em Javascript: veja <a href="/ui/js/vm.js" target="_blank">aqui</a> e <a href="/ui/js/vm_iface.js" target="_blank">aqui</a>.</p>
+
+<div id="canvaswrapper"><canvas id="canvas"></canvas></div>
+
+<p>Espero que gostem.</p>
+
+<script type="text/javascript" src="/ui/js/vm.js"></script>
+<script type="text/javascript" src="/ui/js/vm_iface.js"></script>
+
+<script>
+    var vm = undefined;
+    window.addEventListener('keydown', (event) => {
+        if (typeof vm != 'undefined' && event.key == 'n' ||
+            event.key == 'N') {
+            vm.run_step();
+            window.requestAnimationFrame(
+                function() {
+                    vm.draw();
+                }
+            );
+        }
+    }, false);
+
+    function main()
+    {
+        var canvas = document.getElementById('canvas');
+        canvas.width = 1024;
+        canvas.height = 680;
+
+        vm = new vm_gui(canvas, 1024, 680);
+        window.requestAnimationFrame(
+            function() {
+                vm.draw();
+            }
+        );
+    }
+
+    window.onload = function(event) {
+        main();
+    }
+
+    var dx = null;
+    document.addEventListener('touchstart', (event) => {
+        if (event.target.id != "canvas") {
+            return;
+        }
+
+        dx = event.touches[0].clientX;
+    }, false);
+
+    document.addEventListener('touchmove', (event) => {
+        if (dx === null) {
+            return;
+        }
+
+        if (event.touches[0].clientX - dx > 0) {
+            vm.run_step();
+        }
+        dx = null;
+        window.requestAnimationFrame(
+            function() {
+                vm.draw();
+            }
+        );
+    }, false);
+</script>
+
+
+{% include "disqus.tmpl" %}
+{% endblock %}
+

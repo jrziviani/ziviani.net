@@ -50,11 +50,17 @@ $ ./function
 
 <p>To write a compliant C function we need to respect some rules <em>(the same rules that the C compiler respects when it generates the binary code)</em>. These rules are defined by the ABI, or <a href="https://en.wikipedia.org/wiki/Application_binary_interface" target="_blank">Application Binary Interface</a>, that is tied to the target architecture.</p>
 
-<p>One of the rules says about functions: where parameters are a expected to be, how to set up your stack frame, where to store the return values. If you do that you will have a function.</p>
+<p>One of the rules says about functions: where parameters are a expected to be, how to set up your stack frame, where to store the return values, etc. Those rules help to organize the system in a way that multiple languages can interact with each other (calling libraries, for instance) without problems.</p>
 
-<p>The following interactive animation illustrates an imaginary toy processor and how functions work within its simple specification: 3 registers and some memory. <strong>Use n (or swipe left) and p (or swipe right) to navigate</strong>.</p>
+<p>The following interactive animation illustrates an imaginary toy processor and how functions work within its simple specification: 3 registers and some memory. This is the code that my imaginary compiler will create for something in C, like:</p>
 
-<p><strong>Note</strong>: The highlighted line should be one instruction ahead.</p>
+<pre class="prettyprint linenums"><code class="language-c">int x = mult(5, 3);
+printf("%d", x);
+int y = mult(x, 2);
+printf("%d", y);</code></pre>
+
+<p><strong>Note:</strong> This figure is interactive, use 'n' to go to the next instruction.</p>
+<p><strong>Note II:</strong> The code is <strong>really</strong> running in a mini virtual-machine written in Javascript: check <a href="/ui/js/vm.js" target="_blank">here</a> and <a href="/ui/js/vm_iface.js" target="_blank">here</a>.</p>
 
 <div id="canvaswrapper"><canvas id="canvas"></canvas></div>
 
