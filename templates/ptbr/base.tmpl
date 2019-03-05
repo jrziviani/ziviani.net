@@ -28,56 +28,41 @@
         </script>
         <link href="/ui/css/zvnet.css" rel="stylesheet"/>
     </head>
+
     <body>
-        <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-            <div class="container-fluid">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main_nav" aria-expanded="false">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="/ptbr">
-                        <strong>memory</strong><em>dump</em>
-                    </a>
+        <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
+            <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main_nav" aria-expanded="false" aria-controls="main_nav" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><strong>memory</strong><em>dump</em></a>
+            <div class="collapse navbar-collapse" id="main_nav">
+                <div class="navbar-nav mr-auto">
+                    <a class="nav-item nav-link" href="/"><img src="/ui/images/usa.png" alt="brazilian flag"/></a>
+                    <a class="nav-item nav-link" href="/ptbr/about">about</a>
+                    <a class="nav-item nav-link" href="https://github.com/jrziviani" target="_blank">github</a>
+                    <a class="nav-item nav-link" href="https://br.linkedin.com/in/ziviani" target="_blank">linkedin</a>
+                    <a class="nav-item nav-link" href="/ptbr/links">links</a>
+                    <a class="nav-item nav-link" href="/ptbr/articles">articles</a>
                 </div>
-                <div class="collapse navbar-collapse" id="main_nav">
-                    <ul class="nav navbar-nav">
-                        <li><a href="/"><img src="/ui/images/usa.png" alt="american flag"/></a></li>
-                        <li><a href="/ptbr/about">sobre</a></li>
-                        <li><a href="https://github.com/jrziviani" target="_blank">github</a></li>
-                        <li><a href="https://br.linkedin.com/in/ziviani" target="_blank">linkedin</a></li>
-                        <li><a href="/ptbr/links">links</a></li>
-                        <li><a href="/ptbr/articles">artigos</a></li>
-                    </ul>
-                    <form class="navbar-form navbar-right" action="/search" method="post">
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="search" maxlength="25" placeholder="pesquise" aria-describedby="search-btn">
-                            <span class="input-group-btn">
-                                <button class="btn btn-primary" type="submit">DuckDuckGo!</button>
-                            </span>
-                        </div>
-                    </form>
-                </div>
+                <form class="form-inline my-lg-0" action="/search" method="post">
+                    <div class="input-group">
+                        <input class="form-control mr-sm-1" name="search" type="search" placeholder="search" aria-label="search">
+                        <button class="btn btn-outline-success" type="submit">DuckDuckGo!</button>
+                    </div>
+                </form>
             </div>
         </nav>
 
-        <div class="container-fluid override">
+        <div class="container override">
             <div class="row">
-                <div class="wrapper">
-                    <div class="col-md-2 visible-lg-block" id="index">
-                        {% include "ptbr/articles.tmpl" %}
-                    </div>
-                    <div class="col-md-9 id="content">
-                        {% block postbody %}{% endblock %}
-                    </div>
+                <div class="col" id="content">
+                {% block postbody %}{% endblock %}
                 </div>
             </div>
         </div>
 
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <!-- Include all compiled plugins (below), or include individual files as needed -->
         <script src="/ui/js/bootstrap.min.js"></script>
         <script src="/ui/js/zvnet.js"></script>
