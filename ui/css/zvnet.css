@@ -81,8 +81,6 @@ a:focus.nav-item {
  * Main content style
  */
 .container.override .row {
-    margin-left: -15%;
-    margin-right: -15%;
     height: 100%;
     font-family: 'Lora', Georgia, serif !important;
     font-size: 1.5em !important;
