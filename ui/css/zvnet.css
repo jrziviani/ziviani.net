@@ -83,7 +83,7 @@ a:focus.nav-item {
 .container.override .row {
     height: 100%;
     font-family: 'Lora', Georgia, serif !important;
-    font-size: 1.5em !important;
+    font-size: 1.3em !important;
     margin-top: 1em;
     scrollbar-color: #f7ca88 #383838;
     scrollbar-width: thin;
@@ -151,7 +151,7 @@ h2.error {
 }
 
 h2 {
-    font-size: 2.3em !important;
+    font-size: 2.0em !important;
     margin-top: 0;
 }
 
