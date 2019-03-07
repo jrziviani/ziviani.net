@@ -82,7 +82,7 @@ class Blog(object):
         '''
         Handles the main page request
         '''
-        return self._on_ptbr_posts(request, '2017', 'funcoes-em-assembly')
+        return self._on_ptbr_posts(request, '2017', 'funcoes-em-assembly-ii')
 
     def _on_feed(self, request):
         '''

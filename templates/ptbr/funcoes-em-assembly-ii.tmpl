@@ -1,0 +1,160 @@
+{% extends "ptbr/base.tmpl" %}
+{% block postbody %}
+<h2>Escrevendo funções em assembly - Parte II</h2>
+
+<p>Continuação da <a href="/2017/ptbr/funcoes-em-assembly">parte I</a>.</p>
+
+<h3>A Call Stack</h3>
+
+<p>Uma ABI de verdade é densa e, claro, está fora do escopo deste humilde post. Aqui, o foco é numa pequena parte, suficiente para completar o nosso objetivo. Veja a figura abaixo:</p>
+
+<a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a>
+
+<p>Esta é a imagem de uma <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. Em resumo, a <em>call stack</em> garante que funções vivam "em harmonia", que uma não atropele a outra sobrescrevendo variáveis locais, endereços de retorno e por aí vai. Isso já deixa nosso objetivo bastante claro: precisamos escrever um código que respeite este <em>call stack</em>.</p>
+
+<p>De acordo com a <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">ABI</a> de PowerPC, preciso alocar 160 bytes da <em>stack</em>, salvar cada uma dessas "coisas" da área cinza, que veremos em breve, e só!</p>
+
+<h3>Mini FAQ sobre PowerPC64 ABI</h3>
+
+<p><strong>Como obter um ponteiro para a stack (<em>stack pointer</em>)?</strong></p>
+
+<p><blockquote>The stack pointer, r1, shall always point to the lowest address doubleword of the most recently allocated stack frame.</blockquote> Em Português: O <em>stack pointer</em>, <strong>r1</strong>, deve sempre apontar para o endereço de 64-bits mais baixo do último <em>stack frame</em> alocado. Que basicamente quer dizer que o registrador <strong>r1</strong>, dentre os 32 registradores de uso geral de PowerPC, foi o escolhido para ser o <em>stack pointer</em>.</p>
+
+<p><strong>Como eu aloco memória da <em>stack</em></strong></p>
+
+<p>O sistema operacional faz isso pra gente. Só precisamos nos preocupar em incrementar ou decrementar <strong>r1</strong>.</p>
+
+<p><strong>O que é essa área cinza?</strong></p>
+
+<ul>
+    <li><strong>Back Chain</strong>: é o endereço do último <em>stack frame</em>. Cada função armazena o último <em>frame</em> no começo do seu próprio, isso facilita bastante o mecanismo de exceções das linguagens de programação.</li>
+    <li><strong>CR Save</strong>: Em PowerPC, <strong>CR</strong> (<em>Condition Register</em>) é um registrador de 32-bits que reflete o resultado de algumas operações e provê mecanismos para <em>branching</em>. Antes de mudar qualquer bit deste registrador, uma cópia deve estar armazenada na sua <em>stack</em>.</li>
+    <li><strong>Reserved</strong>: Não mexemos aqui.</li>
+    <li><strong>LR Save</strong>: LR (Link Register) tem o endereço para onde a o código deve retornar depois que executar a função, e deve-se setá-lo. Se tiver a intenção de chamar outra função (ou mesmo chamadas recursivas), é necessário salvar o <em>LR</em> nesta área e recolocá-la no <em>LR</em> antes de finalizar.</li>
+    <li><strong>TOC Pointer</strong>: Pointeiro TOC é armazenado no registrador <strong>r2</strong>, segundo a ABI. Também é sua responsabilidade que este valor esteja íntegro ao retorno. PowerPC combina GOT (<em>Global Offset Table</em>) usado para guardar endereços de <a href="https://en.wikipedia.org/wiki/Position-independent_code">PIC</a>) e uma pequena <em>data section</em> que formam o TOC. Mais informações podem ser encontradas nas referências abaixo.</li>
+    <li><strong>Parameter Save Area (optional)</strong>: Em PowerPC, parâmetros são usualmente passados por registradores (afinal, 32 registradores...) então não fica muito claro pra mim o que iria aqui. Acho que funções de parâmetros variáveis (<em>varargs</em>) ou quando a função recebe mais que 8 parâmetros.
+    <li><strong>Local Variable Space (optional)</strong>: Cada variável local declarada na função pode ser armazenada aqui.</li>
+    <li>Para saber mais ou ler sobre o restante que não abordo aqui, leia <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">64-Bit ELF V2 ABI Specification: Power Architecture</a>.</li>
+</ul>
+
+<p><strong>Por que 160 bytes?</strong>:</p>
+<p>O mínimo necessário são 32 bytes, mais 8 vezes 8 bytes para a área de parâmetros (se necessário), e 8 vezes 8 bytes para o espaço de variáveis locais (também se necessário). 32 + (8 * 8) + (8 * 8) = 160 (que também está alinhada em 64-bits.</p>
+
+<h3>Parâmetros</h3>
+
+<p>Como PowerPC tem registradores de sobra, parâmetros são comumente passados por eles. A ABI designa 8 registradores para isso; de <strong>r3</strong> até <strong>r13</strong>. Ponto flutuante e vetores usam registradores próprios.</p>
+
+<h3>Retorno</h3>
+
+<p>Segundo a ABI <blockquote>Functions that return values of the following types shall place the result in register r3 as signed or unsigned integers, as appropriate, and sign extended or zero extended to 64 bits where necessary:<ul>
+        <li>char</li>
+        <li>enum</li>
+        <li>short</li>
+        <li>int</li>
+        <li>long</li>
+        <li>pointer to any type</li>
+        <li>_Bool</li>
+        <ul></blockquote>
+
+Em Português: Funções que retornam valores dos seguintes tipos devem colocar o resultado no registrado <strong>r3</strong> como inteiros <em>signed</em> ou <em>unsigned</em> e <em>sign extended</em> ou <em>zero extended</em> para 64-bits quando necessário.</p>
+
+<h3>Agora dá pra responder aquela perguntinha da <a href="/2017/functions-in-assembly">parte I</a></h3>
+
+<p>O código <code class="prettyprint">int i = my_function(5); // i == 5</code> faz todo sentido agora: <code class="prettyprint">main()</code> coloca o parâmetro "5" no registrador <strong>r3</strong> como parâmetro para <code class="prettyprint">my_function()</code>, o que é <strong>o mesmo registrador usado para retorno</strong>.</p>
+
+<h3>Finalmente o código</h3>
+
+<pre class="prettyprint linenums"><code class="language-assembly">.align 2
+.type my_function,@function;
+.globl my_function;
+my_function:
+    addis 2, 12, .TOC.-my_function@ha;
+    addi 2, 2, .TOC.-my_function@l;
+    .localentry my_function, .-my_function
+    mflr 0
+    std 0, 16(1)
+    stdu 1, -160(1)
+
+    add 3, 3, 4
+
+    addi 1, 1, 160
+    ld 0, 16(1)
+    mtlr 0
+    blr</code></pre>
+
+<p>Tirando o código <code class="prettyprint">add 3, 3, 4</code>, todo o resto é pra ajustar a <em>stack</em>. A parte anterior é conhecida como <strong>prologue</strong>, que inicializa o ponteiro TOC no registrador <strong>r2</strong>, isso porque todas a funções tem um ponto de entrada global (GEP - <em>global entry point</em>) disponível que aponta para o inicio do <strong>prologue</strong> e algumas funções podem ter um ponto de entrada secundário para otimizar o custo do gerenciamento do ponteiro TOC. Além de salvar o <em>Link Register</em> e alocar os 160 bytes. No final temos o <strong>epilogue</strong> que restaura as mudanças do prologue: recalcula os 160 bytes da <em>stack</em>, carrega o <em>Link Register</em> no registrador <strong>r0</strong> e volta o valor inicial para o <em>Link Register</em>.</p>
+
+<p>Para saber mais sobre o conjunto de instruções de PowerPC veja <a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a>.</p>
+
+<h3>Por fim</h3>
+
+<p>Uma macro pra deixar as coisas mais fáceis:</p>
+
+<pre class="prettyprint"><code class="language-bash">$ cat util.h</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">#ifndef _UTIL_H
+#define _UTIL_H
+
+#define FUNCTION(name)              \
+    .align 2;                       \
+    .type name, @function;          \
+    .globl name;                    \
+    name:                           \
+        addis 2, 12, .TOC.-name@ha; \
+        addi 2, 2, .TOC.-name@l;    \
+        .localentry name,.-name;    \
+        mflr 0;                     \
+        std 0, 16(1);               \
+        stdu 1, -160(1);
+
+#define ENDFUNCTION                 \
+    addi 1, 1, 160;                 \
+    ld 0, 16(1);                    \
+    mtlr 0;                         \
+    blr;
+
+#endif</code></pre>
+<pre class="prettyprint"><code class="language-bash">$ cat function.S</code></pre>
+<pre class="prettyprint linenums"><code class="language-assembly">#include "util.h"
+.align 2
+.printf_fmt:
+    .string "\t=&gt; %d\n"
+
+FUNCTION(print_sum)
+    add 4, 4, 3
+    addis 3, 2, .printf_fmt@toc@ha
+    addi 3, 3, .printf_fmt@toc@l
+    bl printf
+    nop
+ENDFUNCTION</code></pre>
+
+<pre class="prettyprint"><code class="language-bash">$ cat function.c</code></pre>
+<pre class="prettyprint linenums"><code class="language-c">#include &lt;stdio.h&gt;
+extern void print_sum(int a, int b);
+
+int main(void)
+{
+    print_sum(10, 8);
+    printf("Funciona! ;-)\n");
+    return 0;
+}</code></pre>
+
+<pre class="prettyprint"><code class="language-bash">$ gcc function.S function.c -o function
+$ ./function
+        =&gt; 18
+Funciona! ;-)</code></pre>
+
+<p>E é isso, a macro faz todo o "trabalho sujo" de alocação da <em>stack frame</em> e a gente só escreve o código relevante. Particularmente, eu somei o conteúdo do registrador r3 com r4 e salvei em r4. Então, coloquei a string de formatação <code class="prettyprint">"\t=&gt; %d\n"</code> no registrador r3 e chamei (<em>branch</em>) a clássica <code class="prettyprint">printf</code>, provando que esse código <code class="prettyprint">print_sum</code> pode chamar e ser chamado de qualquer programa C normalmente.</p>
+
+<h3>Referências</h3>
+
+<ul>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">PowerPC 64-bit ELF V2 ABI</a></li>
+    <li><a href="https://openpowerfoundation.org/?resource_lib=power-isa-version-3-0" target="_blank">IBM Power ISA™ Version 3.0B</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Application_binary_interface" target="_blank">Application binary interface</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">Call Stack</a></li>
+    <li><a href="https://www.ibm.com/developerworks/library/l-ppc/" target="_blank">PowerPC Assembly</a></li>
+    <li><a href="https://www.ibm.com/developerworks/linux/library/l-powasm4/index.html" target="_blank">Function calls and the PowerPC 64-bit ABI</a></li>
+</ul>
+
+{% include "disqus.tmpl" %}
+{% endblock %}
