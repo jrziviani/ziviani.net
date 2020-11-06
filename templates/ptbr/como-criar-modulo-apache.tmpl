@@ -18,7 +18,7 @@
 
 <p>O primeiro passo é baixar o código e compilá-lo:</p>
 
-<pre class="prettyprint"><code class="language-bash">$ git clone https://github.com/apache/httpd.git
+<pre class="prettyprint linenums"><code class="language-bash">$ git clone https://github.com/apache/httpd.git
 $ cd httpd
 $ git clone https://github.com/apache/apr.git srclib/apr
 $ ./buildconf
@@ -33,7 +33,7 @@ bin  build  cgi-bin  conf  error  htdocs  icons  include  lib  logs  man  manual
 
 <p>Veja se o seu <em>build</em> funcionou. Ajuste a porta local para acessá-lo e aponte seu <em>browser</em> para o servidor. <strong>Nota:</strong> coloquei uma porta alta para não precisar iniciar o servidor como administrador.</p>
 
-<pre class="prettyprint"><code class="language-bash">$ # ainda em /home/ziviani/www
+<pre class="prettyprint linenums"><code class="language-bash">$ # ainda em /home/ziviani/www
 $ vi conf/httpd.conf
 ...
 LISTEN 9898
@@ -51,7 +51,7 @@ $ bin/apachectl -k start</code></pre>
 
 <p>Beleza! Agora que temos um servidor funcionando vamos criar nosso primeiro módulo.</p>
 
-<pre class="prettyprint"><code class="language-bash">$ bin/apxs -g -n my_fast_server
+<pre class="prettyprint linenums"><code class="language-bash">$ bin/apxs -g -n my_fast_server
 Creating [DIR]  my_fast_server
 Creating [FILE] my_fast_server/Makefile
 Creating [FILE] my_fast_server/modules.mk
@@ -236,7 +236,7 @@ module AP_MODULE_DECLARE_DATA my_fast_server_module = {
 
 <p>Agora vamos construir o DSO e instalar o DSO no diretório de módulos do Apache (que o apxs faz pra gente também - automaticamente).
 
-<pre class="prettyprint"><code class="language-bash">$ bin/apxs -c -i my_fast_server/mod_my_fast_server.c
+<pre class="prettyprint linenums"><code class="language-bash">$ bin/apxs -c -i my_fast_server/mod_my_fast_server.c
 
 /home/ziviani/www/build/libtool --silent --mode=compile gcc ...
 ...
@@ -262,7 +262,7 @@ chmod 755 /home/ziviani/www/modules/mod_my_fast_server.so</code></pre>
 
 <p>E isso é tudo!! Basta configurar o <code class="prettyprint">httpd.conf</code> e sair usando seu novo servidor.</p>
 
-<pre class="prettyprint"><code class="language-bash">$ vim conf/httpd.conf
+<pre class="prettyprint linenums"><code class="language-bash">$ vim conf/httpd.conf
 ...
 LoadModule my_fast_server_module modules/mod_my_fast_server.so
 &lt;Location /my_fast_server&gt;
@@ -288,7 +288,7 @@ $ bin/apachectl -k start</code></pre>
     <li>build it!</li>
 </ul></p>
 
-<pre class="prettyprint"><code class="language-bash">$ cp -a my_fast_server ~/httpd/modules/
+<pre class="prettyprint linenums"><code class="language-bash">$ cp -a my_fast_server ~/httpd/modules/
 $ cd ~/httpd
 
 $ vim my_fast_server/config.m4
@@ -320,7 +320,7 @@ $ make install</code></pre>
 
 <p>Se seu <em>build</em> terminou sem erros você já pode testá-lo. Edite o <code class="prettyprint">conf/httpd.conf</code> na pasta www e inicie o servidor.</p>
 
-<pre class="prettyprint"><code class="language-bash">$ vim conf/httpd.conf
+<pre class="prettyprint linenums"><code class="language-bash">$ vim conf/httpd.conf
 ...
 LoadModule my_fast_server_module modules/mod_my_fast_server.so
 &lt;Location /my_fast_server&gt;

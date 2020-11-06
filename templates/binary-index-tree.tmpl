@@ -115,8 +115,6 @@ update(array, 17, 50);</code></pre>
 
 <p><img src="/ui/images/bit_debug.png" alt="binary index tree update value"/></p>
 
-<p><br/><br/></p>
-
 <p>
 <table class="table table-striped">
     <thead>
@@ -167,14 +165,14 @@ update(array, 17, 50);</code></pre>
         <tr>
             <th>index</th>
             <th>16</th>
-            <th>17</th>
-            <th>18</th>
+            <th class="yellow">17</th>
+            <th class="yellow">18</th>
             <th>19</th>
-            <th>20</th>
+            <th class="yellow">20</th>
             <th>21</th>
             <th>22</th>
             <th>23</th>
-            <th>24</th>
+            <th class="yellow">24</th>
             <th>25</th>
             <th>26</th>
             <th>27</th>
@@ -188,14 +186,14 @@ update(array, 17, 50);</code></pre>
         <tr>
             <td>cumul.freq.</td>
             <td>440</td>
-            <td><strong class="red">98</strong></td>
-            <td><strong class="red">137</strong></td>
+            <td class="yellow">98</td>
+            <td class="yellow">137</td>
             <td>1</td>
-            <td><strong class="red">181</strong></td>
+            <td class="yellow">181</td>
             <td>37</td>
             <td>71</td>
             <td>25</td>
-            <td><strong class="red">285</strong></td>
+            <td class="yellow">285</td>
             <td>36</td>
             <td>67</td>
             <td>9</td>
@@ -226,12 +224,10 @@ update(array, 17, 50);</code></pre>
 // caller
 read(array, 31);</code></pre>
 
-<pre class="prettyprint"><code class="language-bash">$ ./bit
+<pre class="prettyprint linenums"><code class="language-bash">$ ./bit
 896</code></pre>
 
 <p><img src="/ui/images/bit_debug2.png" alt="binary index tree read value"/></p>
-
-<p><br/><br/></p>
 
 <h3>Isolating the rightmost bit</h3>
 
@@ -241,9 +237,9 @@ read(array, 31);</code></pre>
 
 <p>If you print <strong>i &amp; -i</strong> in a sequence of i, you will get the following pattern:</p>
 
-<pre class="prettyprint"><code class="language-python">for i in range(33):
+<pre class="prettyprint linenums"><code class="language-python">for i in range(33):
     print i &amp; -i,
-
+...
 0 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 16 1 2 1 4 1 2 1 8 1 2 1 4 1 2 1 32</code></pre>
 
 <p>And <a href="https://en.wikipedia.org/wiki/Fenwick_tree" target="_blank">Mr. Fenwick</a> had the idea to make a logarithmic algorithm to access a data structure out of such pattern. <strong>!!BRILLIANT!!</strong>

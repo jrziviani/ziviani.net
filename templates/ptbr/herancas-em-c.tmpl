@@ -179,7 +179,7 @@ Execute:
 
 <p>Agora, as entranhas.</p>
 
-<pre class="prettyprint"><code class="language-asm">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+<pre class="prettyprint linenums"><code class="language-asm">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
 
 0x4005e3 &lt;main+38&gt;      mov    $0x10,%edi
 0x4005e8 &lt;main+43&gt;      callq  0x4004c0 &lt;malloc@plt&gt;
@@ -197,7 +197,7 @@ rax            0x602010 6299664
 <p>Malloc lê o <em>size</em> do registrador <code class="prettyprint">EDI</code> e armazena o endereço em <code class="prettyprint">RAX</code>. Este endereço é copiado para <code class="prettyprint">RBP-0x8</code> - que é o lugar onde nossa variável <code class="prettyprint">numbers</code> está localizada na pilha.</p>
 <p><img src="/ui/images/c_poly_malloc.png" alt="malloc instructions" />
 
-<pre class="prettyprint"><code class="language-asm">numbers[0] = (Number*)&i;
+<pre class="prettyprint linenums"><code class="language-asm">numbers[0] = (Number*)&i;
 
 0x4005f1 &lt;main+52&gt;      mov    -0x8(%rbp),%rax
 0x4005f5 &lt;main+56&gt;      lea    -0x20(%rbp),%rdx
@@ -214,7 +214,7 @@ rax            0x602010 6299664
 
 <p class="well"><strong>Importante</strong>: o endereço de uma variável local, na pilha, foi colocado na heap. Felizmente, neste caso, estou executando tudo na função <code class="prettyprint">main()</code>, mas seria danoso se fosse uma outra função retornando um endereço de uma variável local. Leia mais sobre <a href="https://en.wikipedia.org/wiki/Call_stack#Structure" target="_blank">stack frames</a>.</p>
 
-<pre class="prettyprint"><code class="language-asm">int y = ((Integer*)numbers[0])-&gt;val;
+<pre class="prettyprint linenums"><code class="language-asm">int y = ((Integer*)numbers[0])-&gt;val;
 
 0x40060b &lt;main+78&gt;      mov    -0x8(%rbp),%rax
 (gdb) info registers rax
@@ -239,7 +239,7 @@ eax            0x2a     42
 
 <p><img src="/ui/images/c_poly_cast2.png" alt="assembly instructions" /></p>
 
-<pre class="prettyprint"><code class="language-asm">int x = numbers[0]-&gt;type;
+<pre class="prettyprint linenums"><code class="language-asm">int x = numbers[0]-&gt;type;
 
 0x400618 &lt;main+91&gt;      mov    -0x8(%rbp),%rax
 0x40061c &lt;main+95&gt;      mov    (%rax),%rax
@@ -253,7 +253,7 @@ rax            0x0      0
 
 <p><img src="/ui/images/c_poly_cast3.png" alt="assembly instructions" /></p>
 
-<pre class="prettyprint"><code class="language-asm">x = numbers[1]-&gt;type;
+<pre class="prettyprint linenums"><code class="language-asm">x = numbers[1]-&gt;type;
 
 0x400624 &lt;main+103&gt;     mov    -0x8(%rbp),%rax
 (gdb) info registers rax

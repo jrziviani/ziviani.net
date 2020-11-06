@@ -1,8 +1,10 @@
 // GUI fixed sizes
-const PROGRAM_FONT_SIZE = 10;
-const PROGRAM_MARGIN = 7;
+const PROGRAM_FONT_SIZE = 12;
 const PROGRAM_BOX_X = 100;
 const PROGRAM_BOX_Y = 0;
+const PROGRAM_PADDING_X = 10;
+const PROGRAM_PADDING_Y = 7;
+
 const PROGRAM_BACKGROUND_COLOR = '#eee';
 const PROGRAM_TEXT_COLOR = '#000';
 
@@ -18,7 +20,7 @@ const MONITOR_HEIGHT = 150;
 const COMPONENT_BACKGROUND_COLOR = '#000';
 const COMPONENT_TITLE_FONT = 'bold 14px Helvetica';
 const COMPONENT_TITLE_COLOR = '#fff';
-const COMPONENT_FONT = '14px Courier';
+const COMPONENT_FONT = 'bold 14px Courier';
 const COMPONENT_COLOR = '#a9d0f5';
 const COMPONENT_HIGHLIGHT_COLOR = '#f7fe2e';
 const COMPONENT_HIGHLIGHT_FONT = '10px Helvetica';
@@ -41,13 +43,13 @@ class box
 
 class vm_gui
 {
-    constructor(canvas, width, height)
+    constructor(canvas)
     {
         this.ctx = canvas.getContext('2d');
         this.program_box = undefined;
         this.vm = init_vm();
-        this.width = width;
-        this.height = height;
+        this.width = document.getElementById('canvas').offsetWidth;
+        this.height = document.getElementById('canvas').offsetHeight;
     }
 
     shadow(value)
@@ -80,8 +82,8 @@ class vm_gui
         // setup the boundaries of the program box
         this.program_box = new box(PROGRAM_BOX_X,
                                    PROGRAM_BOX_Y,
-                                   total_width + (PROGRAM_MARGIN * 2),
-                                   total_height + (PROGRAM_MARGIN * 2));
+                                   total_width + PROGRAM_PADDING_X,
+                                   total_height + PROGRAM_PADDING_Y);
 
         // draw the box with background color
         this.ctx.beginPath();
@@ -97,7 +99,7 @@ class vm_gui
 
         // write the program text in the box
         this.ctx.fillStyle = PROGRAM_TEXT_COLOR;
-        var y = PROGRAM_FONT_SIZE + PROGRAM_MARGIN;
+        var y = PROGRAM_FONT_SIZE + PROGRAM_PADDING_Y;
         for (var i = 0; i < lines.length; i++) {
             this.ctx.fillText(lines[i], 108, y);
             y += PROGRAM_FONT_SIZE + 6;
@@ -110,16 +112,16 @@ class vm_gui
         this.ctx.beginPath();
         this.ctx.globalAlpha = 0.3;
         this.ctx.rect(0,
-                      PROGRAM_MARGIN + (line * 16),
+                      PROGRAM_PADDING_Y + (line * 18),
                       this.program_box.x + this.program_box.width,
-                      15);
+                      17);
         this.ctx.fillStyle = COMPONENT_HIGHLIGHT_COLOR;
         this.ctx.fill();
 
-        this.ctx.fillStyle = COMPONENT_TITLE_COLOR;
+        this.ctx.fillStyle = PROGRAM_TEXT_COLOR;
         this.ctx.font = COMPONENT_HIGHLIGHT_FONT;
         this.ctx.globalAlpha = 0.7;
-        this.ctx.fillText('Instruction Pointer', 9, 18 + line * 16);
+        this.ctx.fillText('Instruction Pointer', 9, 18 + line * 18);
         this.ctx.globalAlpha = 1;
         this.ctx.closePath();
     }
@@ -187,7 +189,7 @@ class vm_gui
 
         this.ctx.fillStyle = COMPONENT_TITLE_COLOR;
         this.ctx.font = COMPONENT_TITLE_FONT;
-        var width = this.ctx.measureText('ŚTACK').width;
+        var width = this.ctx.measureText('STACK').width;
         var x = this.program_box.x + this.program_box.width + 30;
         this.ctx.fillText('STACK',
                          x + (STACK_WIDTH - width) / 2,
@@ -215,7 +217,7 @@ class vm_gui
         this.ctx.fillStyle = COMPONENT_HIGHLIGHT_COLOR;
         this.ctx.fill();
 
-        this.ctx.fillStyle = COMPONENT_TITLE_COLOR;
+        this.ctx.fillStyle = PROGRAM_TEXT_COLOR;
         this.ctx.globalAlpha = 0.7;
         this.ctx.font = COMPONENT_HIGHLIGHT_FONT;
         this.ctx.fillText('Stack Pointer',

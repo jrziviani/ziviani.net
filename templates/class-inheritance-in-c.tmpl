@@ -30,7 +30,7 @@ typedef struct _object {
     PyObject_HEAD
 } PyObject;</code></pre>
 
-<p>See below the children of PyObject: PyStringObject, PyFloatObject, and PyListObject. <strong>But how do I know that they're children of PyObject?</strong> hmm, it'll be clearer later but take a look at the structs, all have <strong>PyObject_HEAD</strong> or <strong>PyObject_VAR_HEAD</strong> (which also starts with PyObject_HEAD, see above) as the <strong>FIRST</strong> field.</p>
+<p>See below the children of <code class="prettyprint">PyObject</code>: <code class="prettyprint">PyStringObject</code>, <code class="prettyprint">PyFloatObject</code>, and <code class="prettyprint">PyListObject</code>. <strong>But how do I know that they're children of PyObject?</strong> hmm, it'll be clearer later but take a look at the structs, all have <code class="prettyprint">PyObject_HEAD</code> or <code class="prettyprint">PyObject_VAR_HEAD</code> (which also starts with <code class="prettyprint">PyObject_HEAD</code>, see above) as the <strong>FIRST</strong> field.</p>
 
 <pre class="prettyprint linenums"><code class="language-c">// http://svn.python.org/view/python/trunk/Include/stringobject.h
 typedef struct {
@@ -59,7 +59,7 @@ typedef struct {
 
 <h3>Casting</h3>
 
-<p>Let's the magic begins. In the code below, forget about everything and focus on "<strong>return ((PyListObject*)op)-&gt;ob_item[i];</strong>".</p>
+<p>Let's the magic begins. In the code below, forget about everything and focus on "<code class="prettyprint">return ((PyListObject*)op)-&gt;ob_item[i];</code>".</p>
 
 <p>Do you know <a href="http://en.cppreference.com/w/c/language/cast" target="_blank">type casting</a>? In a nutshell it's how programmers tell the compiler they are geniuses and can be trust when they ask to handle a data type as another data type. I heard some people calling it "russian roulette".</p>
 
@@ -83,13 +83,13 @@ PyObject *PyList_GetItem(PyObject *op, Py_ssize_t i)
     return ((PyListObject *)op)-&gt;ob_item[i];
 }</code></pre>
 
-<p>So, <strong>((PyListObject*)op)</strong> casts <strong>op</strong> object pointer (PyObject*) to a PyListObject* (note the PyList_Check(op) as a sanity check). Then it accesses <strong>ob_item</strong> field (PyObject doesn't have ob_item but PyListObject does, as you told your compiler that you're the genius it'll let you do that).</p>
+<p>So, <code class="prettyprint">((PyListObject*)op)</code> casts <code class="prettyprint">op</code> object pointer (<code class="prettyprint">PyObject*</code>) to a <code class="prettyprint">PyListObject*</code> (note the <code class="prettyprint">PyList_Check(op)</code> as a sanity check). Then it accesses <code class="prettyprint">ob_item</code> field.</p>
 
 <p>Finally, whatever is stored at position <strong>i</strong> will be returned to the caller, and it will be returned as PyObject because the function requires and C performs an <a target="_blank" href="https://en.wikipedia.org/wiki/Type_conversion#Implicit_type_conversion">implicit conversion</a> to attend such requirement.</p>
 
 <p><strong>Aaaarrrghhh, but those structs (PyObject vs PyList) are completely different! Why didn't that break the program?</strong></p>
 
-<p>Because it's safe and well defined in the <a href="http://flash-gordon.me.uk/ansi.c.txt" target="_blank">C99 standard.</a>. REPLAY: C99!</p>
+<p>Because it's safe and well defined in the <a href="http://flash-gordon.me.uk/ansi.c.txt" target="_blank">C99 standard.</a>.</p>
 
 <p><blockquote cite="http://flash-gordon.me.uk/ansi.c.txt">Within a structure object, the non-bit-field members and the units in which bit-fields reside have addresses that increase in the order in which they are declared. A pointer to a structure object, suitably cast, points to its initial member (or if that member is a bit-field, then to the unit in which it resides), and vice versa. There may therefore be unnamed holes within a structure object, but not at its beginning, as necessary to achieve the appropriate alignment.</blockquote></p>
 
@@ -140,7 +140,7 @@ int main()
 
     // for debugging purpose ↓
     int y = ((Integer*)numbers[0])-&gt;val;
-    
+
     int x = numbers[0]-&gttype;
     x = numbers[1]-&gttype;
     // for debugging purpose ↑
@@ -181,7 +181,7 @@ Running:
 
 <p>Good, let's see the internals.</p>
 
-<pre class="prettyprint"><code class="language-asm">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
+<pre class="prettyprint linenums"><code class="language-asm">Number **numbers = (Number**)malloc(sizeof(Number*) * 2);
 
 0x4005e3 &lt;main+38&gt;      mov    $0x10,%edi
 0x4005e8 &lt;main+43&gt;      callq  0x4004c0 &lt;malloc@plt&gt;
@@ -196,10 +196,10 @@ rax            0x602010 6299664
 (gdb) x/wx 0x00602010
 0x602010:       0x00000000</code></pre>
 
-<p>Malloc reads the size from EDI register and stores the memory address in RAX. That address is copied to RBP-0x8, the place of our variable <strong>numbers</strong> in the stack.</p>
+<p>Malloc reads the size from <code class="prettyprint">EDI</code> register and stores the memory address in <code class="prettyprint">RAX</code>. That address is copied to <code class="prettyprint">RBP-0x8</code>, the place of our variable <strong>numbers</strong> in the stack.</p>
 <p><img src="/ui/images/c_poly_malloc.png" alt="malloc instructions" />
 
-<pre class="prettyprint"><code class="language-asm">numbers[0] = (Number*)&i;
+<pre class="prettyprint linenums"><code class="language-asm">numbers[0] = (Number*)&i;
 
 0x4005f1 &lt;main+52&gt;      mov    -0x8(%rbp),%rax
 0x4005f5 &lt;main+56&gt;      lea    -0x20(%rbp),%rdx
@@ -210,15 +210,15 @@ rax            0x602010 6299664
 (gdb) x/2wx 0x00602010
 0x602010:       0xffffe3b0      0x00007fff</code></pre>
 
-<p>RBP-0x8 (as known as "numbers") is copied to RAX, the address of RBP-0x20 (the address of struct "i") is copied in RDX, and finally the content of RDX (which is the address of "i") is stored in the heap. The instruction <strong>mov %rdx,(%rax)</strong> copies the RDX content to the place where RAX content is pointing to, which is the memory allocated.</p>
+<p><code class="prettyprint">RBP-0x8</code> (as known as "numbers") is copied to <code class="prettyprint">RAX</code>, the address of <code class="prettyprint">RBP-0x20</code> (the address of struct "i") is copied in <code class="prettyprint">RDX</code>, and finally the content of <code class="prettyprint">RDX</code> (which is the address of "i") is stored in the heap. The instruction <strong><code class="prettyprint">mov %rdx,(%rax)</code></strong> copies the RDX content to the place where RAX content is pointing to, which is the memory allocated.</p>
 
-<p>Note that RBP-0x20 is the place of of Integer first element.</p>
+<p>Note that <code class="prettyprint">RBP-0x20</code> is the place of Integer first element.</p>
 
 <p><img src="/ui/images/c_poly_cast1.png" alt="assembly instructions" /></p>
 
-<p class="well"><strong>Important</strong>: the address of a local variable, in the stack, was stored in the heap, fortunately we are running everything in main() but it could be harmful it was a function, for instance. Read about <a href="https://en.wikipedia.org/wiki/Call_stack#Structure" target="_blank">stack frames</a>.</p>
+<p><blockquote><strong>Important</strong>: the address of a local variable, in the stack, was stored in the heap, fortunately we are running everything in main() but it could be harmful it was a function, for instance. Read about <a href="https://en.wikipedia.org/wiki/Call_stack#Structure" target="_blank">stack frames</a>.</blockquote></p>
 
-<pre class="prettyprint"><code class="language-asm">int y = ((Integer*)numbers[0])-&gt;val;
+<pre class="prettyprint linenums"><code class="language-asm">int y = ((Integer*)numbers[0])-&gt;val;
 
 0x40060b &lt;main+78&gt;      mov    -0x8(%rbp),%rax
 (gdb) info registers rax
@@ -243,7 +243,7 @@ eax            0x2a     42
 
 <p><img src="/ui/images/c_poly_cast2.png" alt="assembly instructions" /></p>
 
-<pre class="prettyprint"><code class="language-asm">int x = numbers[0]-&gt;type;
+<pre class="prettyprint linenums"><code class="language-asm">int x = numbers[0]-&gt;type;
 
 0x400618 &lt;main+91&gt;      mov    -0x8(%rbp),%rax
 0x40061c &lt;main+95&gt;      mov    (%rax),%rax
@@ -257,7 +257,7 @@ rax            0x0      0
 
 <p><img src="/ui/images/c_poly_cast3.png" alt="assembly instructions" /></p>
 
-<pre class="prettyprint"><code class="language-asm">x = numbers[1]-&gt;type;
+<pre class="prettyprint linenums"><code class="language-asm">x = numbers[1]-&gt;type;
 
 0x400624 &lt;main+103&gt;     mov    -0x8(%rbp),%rax
 (gdb) info registers rax

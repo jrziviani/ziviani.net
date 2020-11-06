@@ -54,7 +54,8 @@ crash&gt; bt
 crash&gt; bt &lt;pid&gt;
 # shows kernel messages.
 crash&gt; log
-# prints the content of address in a structured format, any kernel struct may be used. Garbage will be printed if data doesn't match the struct.
+# prints the content of address in a structured format, any kernel struct may be used.
+# Garbage will be printed if data doesn't match the struct.
 crash&gt; struct &lt;struct name&gt; &lt;address&gt;
 # prints the struct, function, symbol definition.
 crash&gt; whatis &lt;name&gt;
@@ -83,7 +84,8 @@ $ sudo cat .bss
 0xc008000010bae680
 
 # back to crash terminal
-crash&gt; add-symbol-file /home/ziviani/linux/arch/powerpc/kvm/kvm.o 0xc008000010b80000 -s .data 0xc008000010bab5f8 -s .bss 0xc008000010bae680
+crash&gt; add-symbol-file /home/ziviani/linux/arch/powerpc/kvm/kvm.o 0xc008000010b80000
+-s .data 0xc008000010bab5f8 -s .bss 0xc008000010bae680
 add symbol table from file "/home/ziviani/linux/arch/powerpc/kvm/kvm.o" at
         .text_addr = 0xc008000010b80000
         .data_addr = 0xc008000010bab5f8

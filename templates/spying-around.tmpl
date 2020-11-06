@@ -5,9 +5,7 @@
 
 <p>This small project examines the memory of another process and it prints a map with all mines exposed. I like the fun of reading other's process memory so I thought it would be nice to report it here. The source code is at <a href="https://gist.github.com/jrziviani/b28bd7e15d8ef6fd28f63c44665f32c6" target="_blank">Github Gist</a>.</p>
 
-<p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_example.png" alt="mines example"/></p>
-
-<p>When you click on a cell the game checks whether you're safe or not. So, the mouse click triggers an event that calls a function to make that check. Using the command <code class="prettyprint">strings</code> we can find the function names available.</p>
+<p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_example.png" class="left" alt="mines example"/> When you click on a cell the game checks whether you're safe or not. So, the mouse click triggers an event that calls a function to make that check. Using the command <code class="prettyprint">strings</code> we can find the function names available.</p>
 
 <pre class="prettyprint linenums"><code class="language-bash">% strings /usr/bin/gnome-mines
 ...
@@ -122,9 +120,7 @@ COMMENT: $rax+0x20 is our cell: 0 if empty, otherwise 1. Copying it to $eax and 
 1: x/i $pc
 =&gt; 0x56551241db4a &lt;minefield_has_mine+26&gt;:	retq</code></pre>
 
-<p><img src="/ui/images/mines_explained.png" alt="mines explained"/></p>
-
-<p>Now the job is to translate that assembly code to C language, which is quite straightforward. My code uses the initial heap address and loops the whole range looking for the [row, column, mine]. Then, we need to use the same offsets to access the map.</p>
+<p><img src="/ui/images/mines_explained.png" class="left" alt="mines explained" style="background: #455a64;"/> Now the job is to translate that assembly code to C language, which is quite straightforward. My code uses the initial heap address and loops the whole range looking for the [row, column, mine]. Then, we need to use the same offsets to access the map.</p>
 
 <pre class="prettyprint linenums"><code class="language-c++">base frame = {stoi(argv[2]), stoi(argv[3]), stoi(argv[4])};
 auto address = search_memory(fd, addresses, frame);
@@ -172,7 +168,7 @@ for (int i = 0; i &lt; frame.height; ++i) {
 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0
 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0</code></pre>
 
-<p><img style="max-width: 20%; height: auto;" src="/ui/images/mines_final.png" alt="mines final"/></p>
+<p><img style="max-width: 80%; height: auto;" src="/ui/images/mines_final.png" alt="mines final"/></p>
 
 {% include "disqus.tmpl" %}
 {% endblock %}

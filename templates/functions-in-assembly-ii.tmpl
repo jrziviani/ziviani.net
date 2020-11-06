@@ -8,9 +8,7 @@
 
 <p>The real ABI is big, it has pages and more pages explaining the low-level system, object files, dynamic linking, and so on. The fully implementation is beyond the scope of this little project, of course. Here, I will focus in a small part of it which I think is enough to accomplish what I want. Let's start with the figure below:</p>
 
-<a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a>
-
-<p>This figure is the image of a <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. In a nutshell, the call stack exists to assure that functions can live in accordance with other functions, to assure that none of your local variables or your return address will change just because you called <code class="prettyprint">printf()</code>, or that you can write your recursive algorithm without worrying whether it will return correctly or not. Concluding, what we <strong>really</strong> need to do is to build the call stack for our function <strong>according</strong> to the ABI.</p>
+<p><a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img class="left" src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a> This figure is the image of a <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. In a nutshell, the call stack exists to assure that functions can live in accordance with other functions, to assure that none of your local variables or your return address will change just because you called <code class="prettyprint">printf()</code>, or that you can write your recursive algorithm without worrying whether it will return correctly or not. Concluding, what we <strong>really</strong> need to do is to build the call stack for our function <strong>according</strong> to the ABI.</p>
 
 <p>Thus, according to <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">this ABI</a>, I will be able to build the call stack by <em>allocating</em> 160 bytes from the stack, save each of those "things" (we'll see them soon) in the gray area, and it's done. Beautiful! But let's address some questions first.</p>
 
@@ -59,7 +57,7 @@
 <h3>Answer to <a href="/2017/functions-in-assembly">Part I</a> question</h3>
 
 <p>The code <code class="prettyprint">int i = my_function(5); // i ==
-5</code>should makes sense now: <code class="prettyprint">main()</code> puts 5 in <strong>R3</strong> register as argument to <code class="prettyprint">my_function()</code>, which is the <strong>same register used to return value</strong>. Thus, after <code class="prettyprint">my_function()</code> returns, <code class="prettyprint">main()</code> reads the return value from <strong>R3</strong> which is, in this case, still <strong>5</strong>.</p>
+5</code> should makes sense now: <code class="prettyprint">main()</code> puts 5 in <strong>R3</strong> register as argument to <code class="prettyprint">my_function()</code>, which is the <strong>same register used to return value</strong>. Thus, after <code class="prettyprint">my_function()</code> returns, <code class="prettyprint">main()</code> reads the return value from <strong>R3</strong> which is, in this case, still <strong>5</strong>.</p>
 
 <h3>The Code</h3>
 
@@ -139,7 +137,7 @@ int main(void)
     return 0;
 }</code></pre>
 
-<pre class="prettyprint"><code class="language-bash">$ gcc function.S function.c -o function
+<pre class="prettyprint linenums"><code class="language-bash">$ gcc function.S function.c -o function
 $ ./function
         =&gt; 18
 Works! ;-)</code></pre>

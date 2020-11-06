@@ -61,7 +61,7 @@ class Blog(object):
             Rule('/ptbr/articles', endpoint='ptbr_articles'),
             Rule('/links', endpoint='hotlinks'),
             Rule('/ptbr/links', endpoint='ptbr_hotlinks'),
-            #Rule('/resume', endpoint='resume'),
+            # Rule('/resume', endpoint='resume'),
             Rule('/<int:year>/<page>', endpoint='posts'),
             Rule('/<int:year>/ptbr/<page>', endpoint='ptbr_posts'),
             Rule('/search', endpoint='search'),
@@ -102,7 +102,8 @@ class Blog(object):
         page_data['url'] = 'https://ziviani.net/%s/%s' % (year, page)
         page_data['uid'] = hashlib.md5(page_data['url']).hexdigest()
 
-        response = self._templates.get_template("%s.tmpl" % page, data=page_data)
+        response = self._templates.get_template("%s.tmpl" % page,
+                                                data=page_data)
         if response is None:
             self._logger.error('template %s not found', page)
             raise NotFound()
@@ -189,7 +190,7 @@ class Blog(object):
             query = query[:25]
 
         search_q = 'https://duckduckgo.com/?q=site:ziviani.net %s' % query
-        search_q+= '&kae=dark&kj=%23282828&k7=%23383838&k5=1&kx=%23f7ca88'
+        search_q+= '&kae=dark&kj=%23455a64&k7=%23eceff1&k5=1&kx=%231565c0'
         search_q+= '&kt=n&k5=1&t=ziviani.net&km=l&kn=0&kae=dark&kh=1&kg=p'
 
         return redirect(url_fix(search_q))

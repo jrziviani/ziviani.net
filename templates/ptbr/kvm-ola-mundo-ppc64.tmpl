@@ -21,7 +21,7 @@ SECTIONS
     .text : { *(.text) }
 }</code></pre>
 
-<pre class="prettyprint"><code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian
+<pre class="prettyprint linenums"><code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian
 $ ld -T code.ld code.o -o code.bin
 $ objdump -d code.bin
 code.bin: file format elf64-powerpc
@@ -79,7 +79,7 @@ int setup_registers(struct virtual_machine *vm)
 
 <p>Depois de compilar e rodar o código, o resultado deverá ser este:</p>
 
-<pre class="prettyprint"><code class="language-bash">$ gcc -O3 vm.c -o vm
+<pre class="prettyprint linenums"><code class="language-bash">$ gcc -O3 vm.c -o vm
 $ ./vm
 KVM version 12
 VM created successfuly
@@ -116,7 +116,7 @@ SECTIONS
     . = 0x100;
     .text : { *(.text) }
 }</code></pre>
-<pre class="prettyprint"><code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian
+<pre class="prettyprint linenums"><code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian
 $ ld -T code.ld code.o -o code.bin</code></pre>
 
 <p>Basicamente só mudou o parâmetro <code class="prettyprint">-mlittle</code>.</p>

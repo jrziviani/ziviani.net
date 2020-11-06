@@ -40,7 +40,7 @@ int main(void)
     printf("%d\n", i);
     return 0;
 }</code></pre>
-<pre class="prettyprint"><code class="language-bash">$ gcc -g3 function.S function.c -o function
+<pre class="prettyprint linenums"><code class="language-bash">$ gcc -g3 function.S function.c -o function
 $ ./function
 5</code></pre>
 
@@ -59,12 +59,9 @@ printf("%d", x);
 int y = mult(x, 2);
 printf("%d", y);</code></pre>
 
-<p><strong>Note:</strong> This figure is interactive, use 'n' to go to the next instruction.</p>
-<p><strong>Note II:</strong> The code is <strong>really</strong> running in a mini virtual-machine written in Javascript: check <a href="/ui/js/vm.js" target="_blank">here</a> and <a href="/ui/js/vm_iface.js" target="_blank">here</a>.</p>
+<p><blockquote><strong>Note:</strong> click <strong>'n'</strong> to go to the next instruction, this is a simple (but real) <a href="/ui/js/vm.js" target="_blank">virtual machine</a>.</blockquote></p>
 
-<div id="canvaswrapper"><canvas id="canvas"></canvas></div>
-
-<p>Hope you like it.</p>
+<div id="canvaswrapper"><canvas id="canvas" width="1024px" height="800px"></canvas></div>
 
 <script type="text/javascript" src="/ui/js/vm.js"></script>
 <script type="text/javascript" src="/ui/js/vm_iface.js"></script>
@@ -86,10 +83,7 @@ printf("%d", y);</code></pre>
     function main()
     {
         var canvas = document.getElementById('canvas');
-        canvas.width = 1024;
-        canvas.height = 680;
-
-        vm = new vm_gui(canvas, 1024, 680);
+        vm = new vm_gui(canvas);
         window.requestAnimationFrame(
             function() {
                 vm.draw();

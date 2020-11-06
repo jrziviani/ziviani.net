@@ -20,7 +20,7 @@ SECTIONS
     . = 0x100;
     .text : { *(.text) }
 }</code></pre>
-<pre class="prettyprint"><code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian
+<pre class="prettyprint linenums"><code class="language-bash">$ as -mbig -mpower8 code.s -o code.o # power8 big-endian
 $ ld -T code.ld code.o -o code.bin
 $ objdump -d code.bin
 code.bin:     file format elf64-powerpc
@@ -78,7 +78,7 @@ int setup_registers(struct virtual_machine *vm)
 
 <p>If you compile and run the code, you'll get the expected result:</p>
 
-<pre class="prettyprint"><code class="language-bash">$ gcc -O3 vm.c -o vm
+<pre class="prettyprint linenums"><code class="language-bash">$ gcc -O3 vm.c -o vm
 $ ./vm
 KVM version 12
 VM created successfuly
@@ -108,19 +108,19 @@ exit reason: 0x0</code></pre>
 <p>Power is a bi-endian architecture, it's possible to run the same in little-endian mode and it doesn't require huge modifications, here we go:</p>
 
 <pre class="prettyprint"><code class="language-bash">$ cat code.ld</code></pre>
-<pre class="prettyprint"><code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpcle)
+<pre class="prettyprint linenums"><code class="line-numbers language-assembly">OUTPUT_FORMAT(elf64-powerpcle)
 SECTIONS
 {
     . = 0x100;
     .text : { *(.text) }
 }</code></pre>
-<pre class="prettyprint"><code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian
+<pre class="prettyprint linenums"><code class="language-bash">$ as -mlittle -mpower8 code.s -o code.o # power8 little-endian
 $ ld -T code.ld code.o -o code.bin</code></pre>
 
 <p>Good, the binary code is in little-endian mode, let's change the vm.c:</p>
 
 <pre class="prettyprint"><code class="language-bash">$ cat vm.c</code></pre>
-<pre class="prettyprint"><code class="language-c">int setup_registers(struct virtual_machine *vm)
+<pre class="prettyprint linenums"><code class="language-c">int setup_registers(struct virtual_machine *vm)
 [snip]
     struct kvm_regs regs = {
         .pc = 0x100,

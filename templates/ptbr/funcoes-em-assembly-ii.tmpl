@@ -8,9 +8,7 @@
 
 <p>Uma ABI de verdade é densa e, claro, está fora do escopo deste humilde post. Aqui, o foco é numa pequena parte, suficiente para completar o nosso objetivo. Veja a figura abaixo:</p>
 
-<a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" alt="stack frame diagram"/></a>
-
-<p>Esta é a imagem de uma <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. Em resumo, a <em>call stack</em> garante que funções vivam "em harmonia", que uma não atropele a outra sobrescrevendo variáveis locais, endereços de retorno e por aí vai. Isso já deixa nosso objetivo bastante claro: precisamos escrever um código que respeite este <em>call stack</em>.</p>
+<p><a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank"><img src="/ui/images/func_assembly_stack_frame.png" class="left" alt="stack frame diagram"/></a> Esta é a imagem de uma <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank">call stack</a>. Em resumo, a <em>call stack</em> garante que funções vivam "em harmonia", que uma não atropele a outra sobrescrevendo variáveis locais, endereços de retorno e por aí vai. Isso já deixa nosso objetivo bastante claro: precisamos escrever um código que respeite este <em>call stack</em>.</p>
 
 <p>De acordo com a <a href="https://openpowerfoundation.org/?resource_lib=64-bit-elf-v2-abi-specification-power-architecture" target="_blank">ABI</a> de PowerPC, preciso alocar 160 bytes da <em>stack</em>, salvar cada uma dessas "coisas" da área cinza, que veremos em breve, e só!</p>
 
@@ -138,7 +136,7 @@ int main(void)
     return 0;
 }</code></pre>
 
-<pre class="prettyprint"><code class="language-bash">$ gcc function.S function.c -o function
+<pre class="prettyprint linenums"><code class="language-bash">$ gcc function.S function.c -o function
 $ ./function
         =&gt; 18
 Funciona! ;-)</code></pre>
